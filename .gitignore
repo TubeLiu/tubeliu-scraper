@@ -1,0 +1,34 @@
+# Python caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+credentials/
+connection.json
+.workbench-runtime/
+
+# Task data, backups and media remain local
+esde-runs/
+runtime/
+media-cache/
+backups/
+prepared/
+snapshot/
+post-snapshot/
+*.sqlite
+*.sqlite-*
+*.db
+events.jsonl
+
+# Local tooling and distribution outputs
+.DS_Store
+Thumbs.db
+*.zip
+coverage/
+.coverage
+.pytest_cache/
