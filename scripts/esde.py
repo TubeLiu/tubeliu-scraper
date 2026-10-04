@@ -3,18 +3,21 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shlex
 import subprocess
 import sys
+import threading
 import xml.etree.ElementTree as ET
+import zlib
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 from esde_core import (CORE_MEDIA, IGNORED_DIRS, METADATA_FIELDS, MEDIA_XML_FIELDS, PROTECTED_FIELDS,
                        actual_files, audit_system, group_games, merged_game,
-                       extension_map, index_media, load_json, normalize_document, parse_document,
+                       extension_map, identity_catalog_entries, index_media, load_json, normalize_document, parse_document,
                        preserved_snapshot, serialize_document, sha256, write_json)
 
 
@@ -125,6 +128,14 @@ class AdbError(RuntimeError):
     pass
 
 
+def resolve_selected_adb(executable=None):
+    from adb_runtime import AdbResolutionError, resolve_adb
+    try:
+        return resolve_adb(executable)
+    except AdbResolutionError as error:
+        raise AdbError(str(error)) from None
+
+
 class Adb:
     def __init__(self, executable="adb", serial=None):
         self.executable = str(executable)
@@ -194,6 +205,76 @@ class Adb:
             result.append({"path": decoded, "size": int(size.strip())})
         return result
 
+    def fingerprint(self, path, timeout=900, *, approved_root=None):
+        """Measure ROM bytes through a read-only stream; never save them to disk."""
+        if not self.serial:
+            raise AdbError("ROM identity measurement requires an explicit selected device")
+        path = remote_root(path)
+        approved_root = remote_root(approved_root) if approved_root is not None else "/"
+        prefix = approved_root.rstrip("/") + "/"
+        if not path.startswith(prefix) or path == approved_root:
+            raise AdbError("ROM measurement must stay inside the explicitly approved ROM root")
+        relative = path[len(prefix):]
+        guard = ["set -e", "test -d " + shlex.quote(approved_root)]
+        current = approved_root.rstrip("/")
+        for component in PurePosixPath(relative).parts:
+            current += "/" + component
+            guard.append("test ! -L " + shlex.quote(current))
+        # Android's standard /sdcard alias is allowed when explicitly selected
+        # as the root; a nested alias must never redirect reads into other data.
+        guard.extend(["root_real=$(readlink -f " + shlex.quote(approved_root) + ")",
+                      "file_real=$(readlink -f " + shlex.quote(path) + ")",
+                      'case "$file_real" in "$root_real"/*) ;; *) exit 76 ;; esac',
+                      "test -f " + shlex.quote(path), "stat -c '%s:%d:%i:%y:%z' " + shlex.quote(path)])
+        stat_script = "\n".join(guard)
+        before = self.shell_bytes(stat_script).strip()
+        try:
+            total = int(before.split(b":", 1)[0])
+        except (ValueError, IndexError):
+            raise AdbError("Selected ROM stat output is unsupported") from None
+        command = [self.executable, "-s", self.serial, "exec-out", "sh", "-c", shlex.quote("cat " + shlex.quote(path))]
+        try:
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            raise AdbError("ADB ROM identity stream could not be opened") from None
+        expired = threading.Event()
+        def stop():
+            expired.set()
+            try:
+                process.kill()
+            except OSError:
+                pass
+        timer = threading.Timer(timeout, stop)
+        timer.daemon = True
+        timer.start()
+        size, md5, sha1, sha256_digest, crc = 0, hashlib.md5(), hashlib.sha1(), hashlib.sha256(), 0
+        try:
+            for chunk in iter(lambda: process.stdout.read(1024 * 1024), b""):
+                size += len(chunk)
+                if size > total:
+                    process.kill()
+                    raise AdbError("Selected ROM changed size during identity measurement")
+                md5.update(chunk)
+                sha1.update(chunk)
+                sha256_digest.update(chunk)
+                crc = zlib.crc32(chunk, crc)
+            process.communicate(timeout=10)
+            if expired.is_set() or process.returncode or size != total:
+                raise AdbError("Selected device disconnected, stalled or ROM bytes changed during identity measurement")
+        except (OSError, subprocess.TimeoutExpired):
+            raise AdbError("ADB ROM identity stream was interrupted; reconnect and rescan") from None
+        finally:
+            timer.cancel()
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
+            process.stdout.close()
+            process.stderr.close()
+        after = self.shell_bytes(stat_script).strip()
+        if before != after:
+            raise AdbError("Selected ROM changed during identity measurement")
+        return {"size": size, "sha256": sha256_digest.hexdigest(), "md5": md5.hexdigest(), "sha1": sha1.hexdigest(), "crc": format(crc & 0xffffffff, "08x")}
+
 
 def remote_root(value):
     value = str(value).replace("\\", "/").rstrip("/")
@@ -217,10 +298,11 @@ def inventory_relative(path, root):
 def snapshot_android(args):
     out = Path(args.out).resolve()
     reporter = Reporter(out, "snapshot", args)
-    adb = Adb(args.adb, args.serial)
     manifest_path = out / "manifest.json"
     esde_root, rom_root = remote_root(args.esde_root), remote_root(args.rom_root)
     try:
+        args.adb = resolve_selected_adb(args.adb)
+        adb = Adb(args.adb, args.serial)
         device = adb.require_device()
         if manifest_path.exists():
             old = load_json(manifest_path)
@@ -535,26 +617,150 @@ def normalize(args, prepare=False):
         before = preserved_snapshot(document, root, actual)
         patch = load_json(args.patch) if prepare else []
         if isinstance(patch, dict):
+            if set(patch) != {"games"}:
+                raise ValueError("Patch wrapper permits only games; identity/catalog/key claims must not be embedded")
             patch = patch.get("games")
         if not isinstance(patch, list):
             raise ValueError("Patch schema must be a list or {games: [...]} object")
-        output, report = normalize_document(document, root, actual, patch)
+        needs_identity = any(isinstance(item, dict) and bool(item.get("metadata")) for item in patch)
+        catalog_path = getattr(args, "identity_catalog", None)
+        if needs_identity and not catalog_path:
+            raise ValueError("--identity-catalog is required before adding or changing game metadata; name-only candidates cannot be written")
+        catalog = load_json(catalog_path) if catalog_path else None
+        if catalog is not None:
+            identity_catalog_entries(catalog)
+        fingerprint_reader = None
+        binding = {"kind": "local", "system_rom_root": str(root)}
+        if args.snapshot and needs_identity:
+            snapshot = Path(args.snapshot).resolve()
+            manifest_data = (snapshot / "manifest.json").read_bytes()
+            inventory_data = (snapshot / "rom_inventory.json").read_bytes()
+            manifest = json.loads(manifest_data.decode("utf-8-sig"))
+            serial = getattr(args, "serial", None)
+            if not serial or serial != manifest.get("serial"):
+                raise ValueError("Android identity verification requires explicit --serial matching the snapshot's selected device")
+            if not getattr(args, "remote_rom_root", None) or remote_root(args.remote_rom_root) != manifest.get("remote_rom_root"):
+                raise ValueError("Android identity verification requires explicit --remote-rom-root matching the snapshot's ROM root")
+            adb_path = resolve_selected_adb(getattr(args, "adb", None) or manifest.get("adb_executable"))
+            adb = Adb(adb_path, serial)
+            adb.require_device()
+            expected_sizes = {entry["path"]: entry["size"] for entry in json.loads(inventory_data.decode("utf-8-sig"))}
+            binding = {"kind": "android", "serial": serial, "remote_rom_root": manifest["remote_rom_root"],
+                       "snapshot_manifest_sha256": sha256(manifest_data), "rom_inventory_sha256": sha256(inventory_data),
+                       "adb_executable": adb_path}
+            def fingerprint_reader(file):
+                if file not in actual:
+                    raise ValueError("Android identity read requires a scanned actual game file")
+                remote = str(root).rstrip("/") + "/" + file
+                fingerprint = adb.fingerprint(remote, approved_root=manifest["remote_rom_root"])
+                if remote not in expected_sizes or fingerprint["size"] != expected_sizes[remote]:
+                    raise ValueError("Selected ROM no longer matches the bound snapshot inventory; rescan first")
+                return fingerprint
+        output, report = normalize_document(document, root, actual, patch, system=args.system,
+                                             identity_catalog=catalog, identity_key_path=getattr(args, "identity_key", None),
+                                             rom_fingerprint_reader=fingerprint_reader)
         after = preserved_snapshot(output, root, actual)
         for file, fields in before.items():
             if after[file] != fields:
                 raise ValueError("Protected fields changed unexpectedly for " + file)
-        report.update({"system": args.system, "source_sha256": sha256(source_data), "output_sha256": sha256(serialize_document(output)), "prepared_at": now()})
+        output_data = serialize_document(output)
+        report.update({"system": args.system, "source_sha256": sha256(source_data), "output_sha256": sha256(output_data), "prepared_at": now()})
         out.parent.mkdir(parents=True, exist_ok=True)
+        if report["identity_checks"]:
+            from identity import seal_preparation
+            frozen_catalog = Path(str(out) + ".identity-catalog.json")
+            frozen_source = Path(str(out) + ".identity-source.xml")
+            proof_path = Path(str(out) + ".identity.json")
+            if out.exists() or any(path.exists() for path in (frozen_catalog, frozen_source, proof_path)):
+                raise ValueError("Existing frozen identity proof must not be replaced; use a separate output XML")
+            catalog_data = (json.dumps(catalog, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+            proof_payload = {"schema_version": 1, "system": args.system, "source_sha256": sha256(source_data),
+                             "output_sha256": sha256(output_data), "identity_catalog_sha256": sha256(catalog_data),
+                             "source_path": str(frozen_source), "output_path": str(out), "identity_catalog_path": str(frozen_catalog),
+                             "rom_root": str(root), "binding": binding, "entries": report["identity_checks"]}
+            proof = seal_preparation(proof_payload, key_path=getattr(args, "identity_key", None))
+            for frozen_path, frozen_bytes in ((frozen_source, source_data), (frozen_catalog, catalog_data),
+                                              (proof_path, (json.dumps(proof, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))):
+                with frozen_path.open("xb") as handle:
+                    handle.write(frozen_bytes)
+            report["identity_gate"] = {"status": "pass", "proof_path": str(proof_path), "catalog_path": str(frozen_catalog),
+                                       "approved_games": len(report["identity_checks"])}
+        else:
+            report["identity_gate"] = {"status": "structural_only", "approved_games": 0}
         temp = out.with_name(out.name + ".part")
-        temp.write_bytes(serialize_document(output))
+        temp.write_bytes(output_data)
         temp.replace(out)
         write_json(str(out) + ".report.json", report)
         write_json(str(out) + ".preserved.json", before)
         reporter.event("conflicts", "Nonempty conflicts resolved by deterministic history precedence; inspect report before deployment", {"count": len(report["conflicts"]), "report": out.name + ".report.json"})
         reporter.update("running", "Prepared " + str(len(actual)) + " unique actual-file references: " + str(out), completed=len(actual), total=len(actual), phase_status="done")
         return 0
-    except (OSError, ValueError, ET.ParseError) as error:
+    except (AdbError, OSError, ValueError, ET.ParseError) as error:
         reporter.update("error", str(error))
+        return 2
+
+
+def android_rom_measurement(args):
+    """Shared read boundary for Android hashing and exact-source authorization."""
+    snapshot = Path(args.snapshot).resolve()
+    manifest_data = (snapshot / "manifest.json").read_bytes()
+    inventory_data = (snapshot / "rom_inventory.json").read_bytes()
+    manifest = json.loads(manifest_data.decode("utf-8-sig"))
+    if not manifest.get("complete") or args.serial != manifest.get("serial"):
+        raise ValueError("Identity measurement requires a complete snapshot of the explicitly selected same device")
+    if remote_root(args.remote_rom_root) != manifest.get("remote_rom_root"):
+        raise ValueError("Explicit Android ROM root must exactly match the bound snapshot")
+    inputs = argparse.Namespace(snapshot=args.snapshot, esde_root=None, extensions=None, system=[args.system])
+    _, systems, roots, _, unsupported = collect_audit_inputs(inputs)
+    if unsupported or args.system not in systems or args.file not in systems[args.system]:
+        raise ValueError("Identity measurement requires this complete platform/file in the selected ROM inventory")
+    remote = roots[args.system].rstrip("/") + "/" + args.file
+    matches = [item for item in json.loads(inventory_data.decode("utf-8-sig")) if item.get("path") == remote]
+    if len(matches) != 1:
+        raise ValueError("Actual ROM must occur exactly once in the bound snapshot inventory")
+    adb_path = resolve_selected_adb(args.adb or manifest.get("adb_executable"))
+    adb = Adb(adb_path, args.serial)
+    adb.require_device()
+    fingerprint = adb.fingerprint(remote, approved_root=manifest["remote_rom_root"])
+    if fingerprint["size"] != matches[0]["size"]:
+        raise ValueError("ROM size changed since snapshot; rescan before authorizing")
+    return fingerprint
+
+
+def hash_android(args):
+    reporter = Reporter(args.run_dir or Path(args.out).resolve().parent, "hash", args)
+    try:
+        from identity import write_catalog
+        fingerprint = android_rom_measurement(args)
+        write_catalog(args.out, fingerprint)
+        reporter.update("running", "Actual selected Android ROM hashes measured without saving ROM files", completed=1, total=1, phase_status="done")
+        print(json.dumps(fingerprint, ensure_ascii=False, indent=2))
+        return 0
+    except (AdbError, OSError, ValueError) as error:
+        reporter.update("blocked", str(error), phase_status="blocked")
+        return 2
+
+
+def authorize_android(args):
+    """Issue an exact approval only after measuring the bound device's ROM bytes."""
+    reporter = Reporter(args.run_dir or Path(args.out).resolve().parent, "identify", args)
+    try:
+        from identity import authorize_patch, build_catalog, load_exact_patch, load_exact_media, write_catalog
+        fingerprint = android_rom_measurement(args)
+        metadata = load_exact_patch(args.patch, args.file)
+        source = load_json(args.source)
+        if isinstance(source, dict) and "identity_source" in source:
+            source = source["identity_source"]
+        media = load_exact_media(args.media)
+        receipt = authorize_patch(source, system=args.system, file=args.file, rom_fingerprint=fingerprint,
+                                  metadata=metadata, media=media, key_path=args.identity_key)
+        catalog = build_catalog([receipt], key_path=args.identity_key)
+        write_catalog(args.out, catalog)
+        reporter.update("running", "Exact fetched facts approved for measured Android ROM: " + args.system + ":" + args.file,
+                        completed=1, total=1, phase_status="done")
+        return 0
+    except (AdbError, OSError, ValueError) as error:
+        reporter.update("blocked", str(error), phase_status="blocked")
         return 2
 
 
@@ -569,13 +775,35 @@ def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     devices = commands.add_parser("devices", help="List ADB states without selecting a device")
-    devices.add_argument("--adb", default=os.environ.get("ADB", "adb"))
+    devices.add_argument("--adb", help="Explicit executable, or discover from ADB/PATH/standard Android SDK locations and verify its version")
     snapshot = commands.add_parser("snapshot-android", help="Read-only resumable XML and inventory snapshot")
-    snapshot.add_argument("--adb", default=os.environ.get("ADB", "adb"))
+    snapshot.add_argument("--adb", help="Explicit executable, or discover from ADB/PATH/standard Android SDK locations and verify its version")
     snapshot.add_argument("--serial", required=True)
     snapshot.add_argument("--esde-root", required=True)
     snapshot.add_argument("--rom-root", required=True)
     snapshot.add_argument("--out", required=True)
+    hash_command = commands.add_parser("hash-android", help="Read-only actual ROM hashing for an explicitly selected snapshot device; never saves ROM bytes")
+    hash_command.add_argument("--snapshot", required=True)
+    hash_command.add_argument("--serial", required=True)
+    hash_command.add_argument("--remote-rom-root", required=True)
+    hash_command.add_argument("--system", required=True)
+    hash_command.add_argument("--file", required=True)
+    hash_command.add_argument("--adb")
+    hash_command.add_argument("--out", required=True, help="Separate new measured fingerprint JSON")
+    hash_command.add_argument("--run-dir")
+    authorize = commands.add_parser("authorize-android", help="Confirm fetched facts against read-only actual ROM bytes on the explicitly bound snapshot device")
+    authorize.add_argument("--snapshot", required=True)
+    authorize.add_argument("--serial", required=True)
+    authorize.add_argument("--remote-rom-root", required=True)
+    authorize.add_argument("--adb")
+    authorize.add_argument("--system", required=True)
+    authorize.add_argument("--file", required=True, help="Complete system-relative actual ROM file, never a display name")
+    authorize.add_argument("--source", required=True, help="Observed signed provider report from a real HTTPS query")
+    authorize.add_argument("--patch", required=True, help="One exact factual metadata patch for this ROM")
+    authorize.add_argument("--media", help="Exact approved media list including signed provider-download receipts")
+    authorize.add_argument("--identity-key")
+    authorize.add_argument("--out", required=True, help="Separate identity catalog output")
+    authorize.add_argument("--run-dir")
     for name in ("audit", "verify-local"):
         command = commands.add_parser(name, help="Audit actual local ROM files or Android snapshot inventories")
         command.add_argument("--rom-root")
@@ -603,6 +831,11 @@ def build_parser():
         command.add_argument("--run-dir", help="Workbench run directory (defaults to output XML parent)")
         if name == "prepare":
             command.add_argument("--patch", required=True, help="JSON factual metadata keyed by actual file; no history/path patches")
+            command.add_argument("--identity-catalog", help="Verified identity catalog binding each changed game to actual ROM bytes and exact approved metadata")
+            command.add_argument("--identity-key", help="Explicit trusted identity key path; never accepted from a patch or catalog")
+            command.add_argument("--adb", help="ADB executable used only for read-only Android ROM fingerprint measurements")
+            command.add_argument("--serial", help="Required for Android metadata updates; must exactly match the snapshot device")
+            command.add_argument("--remote-rom-root", help="Required for Android metadata updates; explicit ROM root must exactly match the snapshot")
     return parser
 
 
@@ -610,13 +843,17 @@ def main(argv=None):
     args = build_parser().parse_args(argv)
     if args.command == "devices":
         try:
-            print(json.dumps(Adb(args.adb).devices(), ensure_ascii=False, indent=2))
+            print(json.dumps(Adb(resolve_selected_adb(args.adb)).devices(), ensure_ascii=False, indent=2))
             return 0
         except AdbError as error:
             print(str(error), file=sys.stderr)
             return 2
     if args.command == "snapshot-android":
         return snapshot_android(args)
+    if args.command == "authorize-android":
+        return authorize_android(args)
+    if args.command == "hash-android":
+        return hash_android(args)
     if args.command in ("audit", "verify-local"):
         return audit(args, verify=args.command == "verify-local")
     return normalize(args, prepare=args.command == "prepare")

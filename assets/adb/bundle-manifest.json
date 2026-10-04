@@ -1,0 +1,968 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "repository": "https://github.com/meator/android-tools-static",
+    "release_tag": "36.0.1",
+    "source_commit": "cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127",
+    "tag_object": "0b27de6d192ce3d880857cfac7390ec05a4ba800",
+    "tag_verified_by_github": true,
+    "release_url": "https://github.com/meator/android-tools-static/releases/tag/36.0.1",
+    "google_official_prebuilt": false
+  },
+  "platforms": {
+    "windows-x86_64": {
+      "os": "Windows",
+      "architectures": [
+        "x86_64"
+      ],
+      "executable": "windows-x86_64/adb.exe",
+      "files": [
+        {
+          "path": "windows-x86_64/adb.exe",
+          "size": 41660935,
+          "sha256": "e4f94201ee68abe9ef6cba50643595e14908fcf2e7c1a58090f4d7966e282b8b"
+        },
+        {
+          "path": "windows-x86_64/AdbWinApi.dll",
+          "size": 186880,
+          "sha256": "fd16a11a27ffc2961337b5730e5b45c0fdb9e31b62f937e4a6290d4ef2bdb99d"
+        },
+        {
+          "path": "windows-x86_64/AdbWinUsbApi.dll",
+          "size": 135680,
+          "sha256": "df555c8bf6208029d61de89623220d924e70e777ddd392dc5e5c97f6df10e9a3"
+        },
+        {
+          "path": "licenses/license-index.json",
+          "size": 20858,
+          "sha256": "159a76283df784fbe730ae79ad7f5524f29c91f2b2aba7be220217cc9c7ac896"
+        },
+        {
+          "path": "licenses/sbom/android-tools-static-36.0.1-macos-aarch64-SBOM.json",
+          "size": 70913,
+          "sha256": "996e3f4761243fc23ba2bfac7d82990519383a1ce05a3f6082f897350096fe1c"
+        },
+        {
+          "path": "licenses/sbom/android-tools-static-36.0.1-macos-x86_64-SBOM.json",
+          "size": 70912,
+          "sha256": "ea15852da315dfad175147c5955cb2461faf5dbb538cd6e181a937a7dc85dd5d"
+        },
+        {
+          "path": "licenses/sbom/android-tools-static-36.0.1-windows-x86_64-SBOM.json",
+          "size": 72340,
+          "sha256": "27d96e16aceb0a4e248d0e6ab09232eca597e9f603b0dd6480bb4d6db61962d6"
+        },
+        {
+          "path": "licenses/toolchain/GCC-COPYING3",
+          "size": 35147,
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+        },
+        {
+          "path": "licenses/toolchain/GCC-RUNTIME-LIBRARY-EXCEPTION",
+          "size": 3324,
+          "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74"
+        },
+        {
+          "path": "licenses/toolchain/MINGW-W64-COPYING",
+          "size": 2326,
+          "sha256": "99a69660981156c21336fdb5661f89341b013c94e4bf9e1c7467b4745718397f"
+        },
+        {
+          "path": "licenses/toolchain/MINGW-W64-CRT-COPYING",
+          "size": 12155,
+          "sha256": "1db8da07b436c68833c0673ffee3d9fcb2526047f3820b81661865dfedc79a1f"
+        },
+        {
+          "path": "licenses/toolchain/MINGW-W64-WINPTHREADS-COPYING",
+          "size": 2883,
+          "sha256": "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177"
+        },
+        {
+          "path": "licenses/upstream-source/001-LICENSE",
+          "size": 11358,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "licenses/upstream-source/002-NOTICE",
+          "size": 26436,
+          "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a"
+        },
+        {
+          "path": "licenses/upstream-source/003-COPYING",
+          "size": 26436,
+          "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a"
+        },
+        {
+          "path": "licenses/upstream-source/004-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/005-NOTICE",
+          "size": 10695,
+          "sha256": "f09747e3bc87e0ec3bdea983b37e18eeda223e01e678f76418a8a731ed8f590f"
+        },
+        {
+          "path": "licenses/upstream-source/006-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/007-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/008-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/009-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/010-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/011-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/012-NOTICE",
+          "size": 647,
+          "sha256": "18506019bb1f7624acda78bb7122784c74dc3551d137df51e485818dd06c4c55"
+        },
+        {
+          "path": "licenses/upstream-source/013-NOTICE",
+          "size": 1075,
+          "sha256": "79f4e3e40e233ecf37271aec00da77235f6528054d057208460a33f44848b23a"
+        },
+        {
+          "path": "licenses/upstream-source/014-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/015-NOTICE",
+          "size": 10695,
+          "sha256": "efcb3b0d1a6686c84546d85d1ad53ae01b0535443972c1f33eb248ae24b8357d"
+        },
+        {
+          "path": "licenses/upstream-source/016-LICENSE",
+          "size": 1267,
+          "sha256": "1bc6c8aff995afb8905dce226367c3e564eb68e4969bfe491229b8b50f19ebe1"
+        },
+        {
+          "path": "licenses/upstream-source/017-NOTICE",
+          "size": 10695,
+          "sha256": "cf14d0774dd1e5f5ae0416edbc5c0de706c474e9402e3fe367e9103cd13891f7"
+        },
+        {
+          "path": "licenses/upstream-source/018-NOTICE",
+          "size": 1310,
+          "sha256": "560d39617dfb4b4e4088597291a070ed6c3a8d67668114ed475c673430c3e49a"
+        },
+        {
+          "path": "licenses/upstream-source/019-LICENSE",
+          "size": 1431,
+          "sha256": "07580f2a3b35709ce703d523f447b242f6dfec7582a8c0df102c7fa2849375f8"
+        },
+        {
+          "path": "licenses/upstream-source/020-NOTICE",
+          "size": 12840,
+          "sha256": "e0afbb47be661ce2076d21a1d4dc02caa58b7c215ab7ff9d151b6724be341f77"
+        },
+        {
+          "path": "licenses/upstream-source/021-LICENSE",
+          "size": 1475,
+          "sha256": "9702de7e4117a8e2b20dafab11ffda58c198aede066406496bef670d40a22138"
+        },
+        {
+          "path": "licenses/upstream-source/022-LICENSE",
+          "size": 638,
+          "sha256": "9eacbcb81be660840c714a560a9d65ba07913db98dd4baf969f78dd499fdd60f"
+        },
+        {
+          "path": "licenses/upstream-source/023-LICENSE",
+          "size": 11357,
+          "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+        },
+        {
+          "path": "licenses/upstream-source/024-LICENSE",
+          "size": 13115,
+          "sha256": "827c8d8fc207c2392794eef9e00fe246f9f61fdcc132556c275be3dd8c3cd97f"
+        },
+        {
+          "path": "licenses/upstream-source/025-LICENSE",
+          "size": 11361,
+          "sha256": "c79a7fea0e3cac04cd43f20e7b648e5a0ff8fa5344e644b0ee09ca1162b62747"
+        },
+        {
+          "path": "licenses/upstream-source/026-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/027-LICENSE",
+          "size": 11558,
+          "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+        },
+        {
+          "path": "licenses/upstream-source/028-NOTICE",
+          "size": 1531,
+          "sha256": "2726bd88ed61e79c2060b2dd91b148261ce519c26eaa19cc12f571983e8b101e"
+        },
+        {
+          "path": "licenses/upstream-source/029-NOTICE",
+          "size": 11357,
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        },
+        {
+          "path": "licenses/upstream-source/030-LICENSE",
+          "size": 11558,
+          "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+        },
+        {
+          "path": "licenses/upstream-source/031-NOTICE",
+          "size": 1531,
+          "sha256": "2726bd88ed61e79c2060b2dd91b148261ce519c26eaa19cc12f571983e8b101e"
+        },
+        {
+          "path": "licenses/upstream-source/032-LICENSE",
+          "size": 1084,
+          "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+        },
+        {
+          "path": "licenses/upstream-source/033-LICENSE",
+          "size": 1431,
+          "sha256": "07580f2a3b35709ce703d523f447b242f6dfec7582a8c0df102c7fa2849375f8"
+        },
+        {
+          "path": "licenses/upstream-source/034-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/035-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/036-LICENSE",
+          "size": 1475,
+          "sha256": "9702de7e4117a8e2b20dafab11ffda58c198aede066406496bef670d40a22138"
+        },
+        {
+          "path": "licenses/upstream-source/037-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/038-COPYING",
+          "size": 26436,
+          "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a"
+        },
+        {
+          "path": "licenses/upstream-source/039-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/040-LICENSE",
+          "size": 646,
+          "sha256": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5"
+        },
+        {
+          "path": "licenses/upstream-source/041-copyright",
+          "size": 321,
+          "sha256": "4f6ef9d0e844bf432d6a0abb2623f5a61175ae40f7f0e3665490311d89e3af87"
+        },
+        {
+          "path": "licenses/upstream-source/042-LICENSE",
+          "size": 1292,
+          "sha256": "d011d1e02cb32b71c1ce2922ab41a2e2ad30f4ecf8de22c078d53618205abc05"
+        },
+        {
+          "path": "licenses/upstream-source/043-COPYING",
+          "size": 14901,
+          "sha256": "609b910ef05c9c855ecc1da155a36ed0f57514eac452cf93446530b5ea4b3bc3"
+        },
+        {
+          "path": "licenses/upstream-source/044-LICENSE",
+          "size": 1311,
+          "sha256": "8b58c446121a109ccf32edc094bba3010a3d85e4ee3702950db55e4d3e87736c"
+        },
+        {
+          "path": "licenses/upstream-source/045-COPYING",
+          "size": 14901,
+          "sha256": "609b910ef05c9c855ecc1da155a36ed0f57514eac452cf93446530b5ea4b3bc3"
+        },
+        {
+          "path": "licenses/upstream-source/046-COPYING",
+          "size": 14901,
+          "sha256": "609b910ef05c9c855ecc1da155a36ed0f57514eac452cf93446530b5ea4b3bc3"
+        },
+        {
+          "path": "licenses/upstream-source/047-LICENSE.build",
+          "size": 19588,
+          "sha256": "bb721bee6e3739307cbe933e1b1f0ba4ad07e44d3e496eeb5b12a31a89cbc232"
+        },
+        {
+          "path": "licenses/upstream-source/048-LICENCE.md",
+          "size": 4011,
+          "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811"
+        },
+        {
+          "path": "licenses/upstream-source/049-LICENSE",
+          "size": 1444,
+          "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb"
+        },
+        {
+          "path": "licenses/upstream-source/050-COPYING",
+          "size": 97,
+          "sha256": "99272c55f3dcfa07a8a7e15a5c1a33096e4727de74241d65fa049fccfdd59507"
+        },
+        {
+          "path": "licenses/upstream-source/051-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/052-LICENSE",
+          "size": 1732,
+          "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d"
+        },
+        {
+          "path": "licenses/upstream-source/053-LICENSE",
+          "size": 1381,
+          "sha256": "3fcfcd6010d73bc2b22505b6a91779022a82661809a3e4e0a0bdd7b3463def8f"
+        },
+        {
+          "path": "licenses/upstream-source/054-LICENSE",
+          "size": 1091,
+          "sha256": "02de69b64fc36d9e938f418e52723e42f0b2b226d58a9cb3c8dcbdf7059f5074"
+        },
+        {
+          "path": "licenses/upstream-source/055-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/056-LICENSE",
+          "size": 1002,
+          "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
+        },
+        {
+          "path": "licenses/upstream-source/057-LICENSE.Info-Zip",
+          "size": 3509,
+          "sha256": "fc686023047ce5ce3a18a9b8a777156f0e475929d3de06bac279f3c025d2b2ca"
+        },
+        {
+          "path": "licenses/upstream-source/058-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/059-COPYING",
+          "size": 18091,
+          "sha256": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505"
+        },
+        {
+          "path": "licenses/upstream-source/060-LICENSE",
+          "size": 1549,
+          "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8"
+        },
+        {
+          "path": "licenses/upstream-source/061-LICENSE",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "licenses/upstream-source/062-LICENSE.build",
+          "size": 19730,
+          "sha256": "df5820d48b8cdaa65e01907b96ca9367e261d02e38c9583592dfdce45be55216"
+        },
+        {
+          "path": "NOTICE.md",
+          "size": 4551,
+          "sha256": "ef934d740c893fe6314ff86f996644e6151fbb0084a11dc845447afd17517a67"
+        },
+        {
+          "path": "REBUILD.md",
+          "size": 5215,
+          "sha256": "f74e96d072100edf3e7771a1112411b47140c71fab0e08164f461850c79269b3"
+        }
+      ],
+      "licenses": [
+        "licenses/license-index.json",
+        "licenses/sbom/android-tools-static-36.0.1-macos-aarch64-SBOM.json",
+        "licenses/sbom/android-tools-static-36.0.1-macos-x86_64-SBOM.json",
+        "licenses/sbom/android-tools-static-36.0.1-windows-x86_64-SBOM.json",
+        "licenses/toolchain/GCC-COPYING3",
+        "licenses/toolchain/GCC-RUNTIME-LIBRARY-EXCEPTION",
+        "licenses/toolchain/MINGW-W64-COPYING",
+        "licenses/toolchain/MINGW-W64-CRT-COPYING",
+        "licenses/toolchain/MINGW-W64-WINPTHREADS-COPYING",
+        "licenses/upstream-source/001-LICENSE",
+        "licenses/upstream-source/002-NOTICE",
+        "licenses/upstream-source/003-COPYING",
+        "licenses/upstream-source/004-NOTICE",
+        "licenses/upstream-source/005-NOTICE",
+        "licenses/upstream-source/006-NOTICE",
+        "licenses/upstream-source/007-NOTICE",
+        "licenses/upstream-source/008-NOTICE",
+        "licenses/upstream-source/009-NOTICE",
+        "licenses/upstream-source/010-NOTICE",
+        "licenses/upstream-source/011-NOTICE",
+        "licenses/upstream-source/012-NOTICE",
+        "licenses/upstream-source/013-NOTICE",
+        "licenses/upstream-source/014-NOTICE",
+        "licenses/upstream-source/015-NOTICE",
+        "licenses/upstream-source/016-LICENSE",
+        "licenses/upstream-source/017-NOTICE",
+        "licenses/upstream-source/018-NOTICE",
+        "licenses/upstream-source/019-LICENSE",
+        "licenses/upstream-source/020-NOTICE",
+        "licenses/upstream-source/021-LICENSE",
+        "licenses/upstream-source/022-LICENSE",
+        "licenses/upstream-source/023-LICENSE",
+        "licenses/upstream-source/024-LICENSE",
+        "licenses/upstream-source/025-LICENSE",
+        "licenses/upstream-source/026-LICENSE.build",
+        "licenses/upstream-source/027-LICENSE",
+        "licenses/upstream-source/028-NOTICE",
+        "licenses/upstream-source/029-NOTICE",
+        "licenses/upstream-source/030-LICENSE",
+        "licenses/upstream-source/031-NOTICE",
+        "licenses/upstream-source/032-LICENSE",
+        "licenses/upstream-source/033-LICENSE",
+        "licenses/upstream-source/034-LICENSE.build",
+        "licenses/upstream-source/035-LICENSE.build",
+        "licenses/upstream-source/036-LICENSE",
+        "licenses/upstream-source/037-LICENSE.build",
+        "licenses/upstream-source/038-COPYING",
+        "licenses/upstream-source/039-LICENSE.build",
+        "licenses/upstream-source/040-LICENSE",
+        "licenses/upstream-source/041-copyright",
+        "licenses/upstream-source/042-LICENSE",
+        "licenses/upstream-source/043-COPYING",
+        "licenses/upstream-source/044-LICENSE",
+        "licenses/upstream-source/045-COPYING",
+        "licenses/upstream-source/046-COPYING",
+        "licenses/upstream-source/047-LICENSE.build",
+        "licenses/upstream-source/048-LICENCE.md",
+        "licenses/upstream-source/049-LICENSE",
+        "licenses/upstream-source/050-COPYING",
+        "licenses/upstream-source/051-LICENSE.build",
+        "licenses/upstream-source/052-LICENSE",
+        "licenses/upstream-source/053-LICENSE",
+        "licenses/upstream-source/054-LICENSE",
+        "licenses/upstream-source/055-LICENSE.build",
+        "licenses/upstream-source/056-LICENSE",
+        "licenses/upstream-source/057-LICENSE.Info-Zip",
+        "licenses/upstream-source/058-LICENSE.build",
+        "licenses/upstream-source/059-COPYING",
+        "licenses/upstream-source/060-LICENSE",
+        "licenses/upstream-source/061-LICENSE",
+        "licenses/upstream-source/062-LICENSE.build"
+      ],
+      "archive": {
+        "name": "android-tools-static-36.0.1-windows-nativelayout-x86_64.zip",
+        "url": "https://github.com/meator/android-tools-static/releases/download/36.0.1/android-tools-static-36.0.1-windows-nativelayout-x86_64.zip",
+        "size": 19029293,
+        "sha256": "f73b3f45832bbfd6f231567ec63a96c50694343df06323676726ac0c1c05332f",
+        "matches_upstream_asset_digest": true
+      },
+      "validation": {
+        "architecture_static": true,
+        "version_executed": true,
+        "device_tested": false
+      },
+      "minimum_windows": "10"
+    },
+    "macos-universal2": {
+      "os": "Darwin",
+      "architectures": [
+        "x86_64",
+        "arm64"
+      ],
+      "executable": "macos-universal2/adb",
+      "files": [
+        {
+          "path": "macos-universal2/adb",
+          "size": 21430048,
+          "sha256": "05da6c795abd59f5a544e6a4233daa0eb2d28b71322b1d6ab57e16178d340c95"
+        },
+        {
+          "path": "licenses/license-index.json",
+          "size": 20858,
+          "sha256": "159a76283df784fbe730ae79ad7f5524f29c91f2b2aba7be220217cc9c7ac896"
+        },
+        {
+          "path": "licenses/sbom/android-tools-static-36.0.1-macos-aarch64-SBOM.json",
+          "size": 70913,
+          "sha256": "996e3f4761243fc23ba2bfac7d82990519383a1ce05a3f6082f897350096fe1c"
+        },
+        {
+          "path": "licenses/sbom/android-tools-static-36.0.1-macos-x86_64-SBOM.json",
+          "size": 70912,
+          "sha256": "ea15852da315dfad175147c5955cb2461faf5dbb538cd6e181a937a7dc85dd5d"
+        },
+        {
+          "path": "licenses/sbom/android-tools-static-36.0.1-windows-x86_64-SBOM.json",
+          "size": 72340,
+          "sha256": "27d96e16aceb0a4e248d0e6ab09232eca597e9f603b0dd6480bb4d6db61962d6"
+        },
+        {
+          "path": "licenses/toolchain/GCC-COPYING3",
+          "size": 35147,
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+        },
+        {
+          "path": "licenses/toolchain/GCC-RUNTIME-LIBRARY-EXCEPTION",
+          "size": 3324,
+          "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74"
+        },
+        {
+          "path": "licenses/toolchain/MINGW-W64-COPYING",
+          "size": 2326,
+          "sha256": "99a69660981156c21336fdb5661f89341b013c94e4bf9e1c7467b4745718397f"
+        },
+        {
+          "path": "licenses/toolchain/MINGW-W64-CRT-COPYING",
+          "size": 12155,
+          "sha256": "1db8da07b436c68833c0673ffee3d9fcb2526047f3820b81661865dfedc79a1f"
+        },
+        {
+          "path": "licenses/toolchain/MINGW-W64-WINPTHREADS-COPYING",
+          "size": 2883,
+          "sha256": "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177"
+        },
+        {
+          "path": "licenses/upstream-source/001-LICENSE",
+          "size": 11358,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "licenses/upstream-source/002-NOTICE",
+          "size": 26436,
+          "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a"
+        },
+        {
+          "path": "licenses/upstream-source/003-COPYING",
+          "size": 26436,
+          "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a"
+        },
+        {
+          "path": "licenses/upstream-source/004-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/005-NOTICE",
+          "size": 10695,
+          "sha256": "f09747e3bc87e0ec3bdea983b37e18eeda223e01e678f76418a8a731ed8f590f"
+        },
+        {
+          "path": "licenses/upstream-source/006-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/007-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/008-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/009-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/010-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/011-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/012-NOTICE",
+          "size": 647,
+          "sha256": "18506019bb1f7624acda78bb7122784c74dc3551d137df51e485818dd06c4c55"
+        },
+        {
+          "path": "licenses/upstream-source/013-NOTICE",
+          "size": 1075,
+          "sha256": "79f4e3e40e233ecf37271aec00da77235f6528054d057208460a33f44848b23a"
+        },
+        {
+          "path": "licenses/upstream-source/014-NOTICE",
+          "size": 10695,
+          "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+        },
+        {
+          "path": "licenses/upstream-source/015-NOTICE",
+          "size": 10695,
+          "sha256": "efcb3b0d1a6686c84546d85d1ad53ae01b0535443972c1f33eb248ae24b8357d"
+        },
+        {
+          "path": "licenses/upstream-source/016-LICENSE",
+          "size": 1267,
+          "sha256": "1bc6c8aff995afb8905dce226367c3e564eb68e4969bfe491229b8b50f19ebe1"
+        },
+        {
+          "path": "licenses/upstream-source/017-NOTICE",
+          "size": 10695,
+          "sha256": "cf14d0774dd1e5f5ae0416edbc5c0de706c474e9402e3fe367e9103cd13891f7"
+        },
+        {
+          "path": "licenses/upstream-source/018-NOTICE",
+          "size": 1310,
+          "sha256": "560d39617dfb4b4e4088597291a070ed6c3a8d67668114ed475c673430c3e49a"
+        },
+        {
+          "path": "licenses/upstream-source/019-LICENSE",
+          "size": 1431,
+          "sha256": "07580f2a3b35709ce703d523f447b242f6dfec7582a8c0df102c7fa2849375f8"
+        },
+        {
+          "path": "licenses/upstream-source/020-NOTICE",
+          "size": 12840,
+          "sha256": "e0afbb47be661ce2076d21a1d4dc02caa58b7c215ab7ff9d151b6724be341f77"
+        },
+        {
+          "path": "licenses/upstream-source/021-LICENSE",
+          "size": 1475,
+          "sha256": "9702de7e4117a8e2b20dafab11ffda58c198aede066406496bef670d40a22138"
+        },
+        {
+          "path": "licenses/upstream-source/022-LICENSE",
+          "size": 638,
+          "sha256": "9eacbcb81be660840c714a560a9d65ba07913db98dd4baf969f78dd499fdd60f"
+        },
+        {
+          "path": "licenses/upstream-source/023-LICENSE",
+          "size": 11357,
+          "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+        },
+        {
+          "path": "licenses/upstream-source/024-LICENSE",
+          "size": 13115,
+          "sha256": "827c8d8fc207c2392794eef9e00fe246f9f61fdcc132556c275be3dd8c3cd97f"
+        },
+        {
+          "path": "licenses/upstream-source/025-LICENSE",
+          "size": 11361,
+          "sha256": "c79a7fea0e3cac04cd43f20e7b648e5a0ff8fa5344e644b0ee09ca1162b62747"
+        },
+        {
+          "path": "licenses/upstream-source/026-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/027-LICENSE",
+          "size": 11558,
+          "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+        },
+        {
+          "path": "licenses/upstream-source/028-NOTICE",
+          "size": 1531,
+          "sha256": "2726bd88ed61e79c2060b2dd91b148261ce519c26eaa19cc12f571983e8b101e"
+        },
+        {
+          "path": "licenses/upstream-source/029-NOTICE",
+          "size": 11357,
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        },
+        {
+          "path": "licenses/upstream-source/030-LICENSE",
+          "size": 11558,
+          "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+        },
+        {
+          "path": "licenses/upstream-source/031-NOTICE",
+          "size": 1531,
+          "sha256": "2726bd88ed61e79c2060b2dd91b148261ce519c26eaa19cc12f571983e8b101e"
+        },
+        {
+          "path": "licenses/upstream-source/032-LICENSE",
+          "size": 1084,
+          "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+        },
+        {
+          "path": "licenses/upstream-source/033-LICENSE",
+          "size": 1431,
+          "sha256": "07580f2a3b35709ce703d523f447b242f6dfec7582a8c0df102c7fa2849375f8"
+        },
+        {
+          "path": "licenses/upstream-source/034-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/035-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/036-LICENSE",
+          "size": 1475,
+          "sha256": "9702de7e4117a8e2b20dafab11ffda58c198aede066406496bef670d40a22138"
+        },
+        {
+          "path": "licenses/upstream-source/037-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/038-COPYING",
+          "size": 26436,
+          "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a"
+        },
+        {
+          "path": "licenses/upstream-source/039-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/040-LICENSE",
+          "size": 646,
+          "sha256": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5"
+        },
+        {
+          "path": "licenses/upstream-source/041-copyright",
+          "size": 321,
+          "sha256": "4f6ef9d0e844bf432d6a0abb2623f5a61175ae40f7f0e3665490311d89e3af87"
+        },
+        {
+          "path": "licenses/upstream-source/042-LICENSE",
+          "size": 1292,
+          "sha256": "d011d1e02cb32b71c1ce2922ab41a2e2ad30f4ecf8de22c078d53618205abc05"
+        },
+        {
+          "path": "licenses/upstream-source/043-COPYING",
+          "size": 14901,
+          "sha256": "609b910ef05c9c855ecc1da155a36ed0f57514eac452cf93446530b5ea4b3bc3"
+        },
+        {
+          "path": "licenses/upstream-source/044-LICENSE",
+          "size": 1311,
+          "sha256": "8b58c446121a109ccf32edc094bba3010a3d85e4ee3702950db55e4d3e87736c"
+        },
+        {
+          "path": "licenses/upstream-source/045-COPYING",
+          "size": 14901,
+          "sha256": "609b910ef05c9c855ecc1da155a36ed0f57514eac452cf93446530b5ea4b3bc3"
+        },
+        {
+          "path": "licenses/upstream-source/046-COPYING",
+          "size": 14901,
+          "sha256": "609b910ef05c9c855ecc1da155a36ed0f57514eac452cf93446530b5ea4b3bc3"
+        },
+        {
+          "path": "licenses/upstream-source/047-LICENSE.build",
+          "size": 19588,
+          "sha256": "bb721bee6e3739307cbe933e1b1f0ba4ad07e44d3e496eeb5b12a31a89cbc232"
+        },
+        {
+          "path": "licenses/upstream-source/048-LICENCE.md",
+          "size": 4011,
+          "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811"
+        },
+        {
+          "path": "licenses/upstream-source/049-LICENSE",
+          "size": 1444,
+          "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb"
+        },
+        {
+          "path": "licenses/upstream-source/050-COPYING",
+          "size": 97,
+          "sha256": "99272c55f3dcfa07a8a7e15a5c1a33096e4727de74241d65fa049fccfdd59507"
+        },
+        {
+          "path": "licenses/upstream-source/051-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/052-LICENSE",
+          "size": 1732,
+          "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d"
+        },
+        {
+          "path": "licenses/upstream-source/053-LICENSE",
+          "size": 1381,
+          "sha256": "3fcfcd6010d73bc2b22505b6a91779022a82661809a3e4e0a0bdd7b3463def8f"
+        },
+        {
+          "path": "licenses/upstream-source/054-LICENSE",
+          "size": 1091,
+          "sha256": "02de69b64fc36d9e938f418e52723e42f0b2b226d58a9cb3c8dcbdf7059f5074"
+        },
+        {
+          "path": "licenses/upstream-source/055-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/056-LICENSE",
+          "size": 1002,
+          "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
+        },
+        {
+          "path": "licenses/upstream-source/057-LICENSE.Info-Zip",
+          "size": 3509,
+          "sha256": "fc686023047ce5ce3a18a9b8a777156f0e475929d3de06bac279f3c025d2b2ca"
+        },
+        {
+          "path": "licenses/upstream-source/058-LICENSE.build",
+          "size": 1070,
+          "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
+        },
+        {
+          "path": "licenses/upstream-source/059-COPYING",
+          "size": 18091,
+          "sha256": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505"
+        },
+        {
+          "path": "licenses/upstream-source/060-LICENSE",
+          "size": 1549,
+          "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8"
+        },
+        {
+          "path": "licenses/upstream-source/061-LICENSE",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "licenses/upstream-source/062-LICENSE.build",
+          "size": 19730,
+          "sha256": "df5820d48b8cdaa65e01907b96ca9367e261d02e38c9583592dfdce45be55216"
+        },
+        {
+          "path": "NOTICE.md",
+          "size": 4551,
+          "sha256": "ef934d740c893fe6314ff86f996644e6151fbb0084a11dc845447afd17517a67"
+        },
+        {
+          "path": "REBUILD.md",
+          "size": 5215,
+          "sha256": "f74e96d072100edf3e7771a1112411b47140c71fab0e08164f461850c79269b3"
+        }
+      ],
+      "licenses": [
+        "licenses/license-index.json",
+        "licenses/sbom/android-tools-static-36.0.1-macos-aarch64-SBOM.json",
+        "licenses/sbom/android-tools-static-36.0.1-macos-x86_64-SBOM.json",
+        "licenses/sbom/android-tools-static-36.0.1-windows-x86_64-SBOM.json",
+        "licenses/toolchain/GCC-COPYING3",
+        "licenses/toolchain/GCC-RUNTIME-LIBRARY-EXCEPTION",
+        "licenses/toolchain/MINGW-W64-COPYING",
+        "licenses/toolchain/MINGW-W64-CRT-COPYING",
+        "licenses/toolchain/MINGW-W64-WINPTHREADS-COPYING",
+        "licenses/upstream-source/001-LICENSE",
+        "licenses/upstream-source/002-NOTICE",
+        "licenses/upstream-source/003-COPYING",
+        "licenses/upstream-source/004-NOTICE",
+        "licenses/upstream-source/005-NOTICE",
+        "licenses/upstream-source/006-NOTICE",
+        "licenses/upstream-source/007-NOTICE",
+        "licenses/upstream-source/008-NOTICE",
+        "licenses/upstream-source/009-NOTICE",
+        "licenses/upstream-source/010-NOTICE",
+        "licenses/upstream-source/011-NOTICE",
+        "licenses/upstream-source/012-NOTICE",
+        "licenses/upstream-source/013-NOTICE",
+        "licenses/upstream-source/014-NOTICE",
+        "licenses/upstream-source/015-NOTICE",
+        "licenses/upstream-source/016-LICENSE",
+        "licenses/upstream-source/017-NOTICE",
+        "licenses/upstream-source/018-NOTICE",
+        "licenses/upstream-source/019-LICENSE",
+        "licenses/upstream-source/020-NOTICE",
+        "licenses/upstream-source/021-LICENSE",
+        "licenses/upstream-source/022-LICENSE",
+        "licenses/upstream-source/023-LICENSE",
+        "licenses/upstream-source/024-LICENSE",
+        "licenses/upstream-source/025-LICENSE",
+        "licenses/upstream-source/026-LICENSE.build",
+        "licenses/upstream-source/027-LICENSE",
+        "licenses/upstream-source/028-NOTICE",
+        "licenses/upstream-source/029-NOTICE",
+        "licenses/upstream-source/030-LICENSE",
+        "licenses/upstream-source/031-NOTICE",
+        "licenses/upstream-source/032-LICENSE",
+        "licenses/upstream-source/033-LICENSE",
+        "licenses/upstream-source/034-LICENSE.build",
+        "licenses/upstream-source/035-LICENSE.build",
+        "licenses/upstream-source/036-LICENSE",
+        "licenses/upstream-source/037-LICENSE.build",
+        "licenses/upstream-source/038-COPYING",
+        "licenses/upstream-source/039-LICENSE.build",
+        "licenses/upstream-source/040-LICENSE",
+        "licenses/upstream-source/041-copyright",
+        "licenses/upstream-source/042-LICENSE",
+        "licenses/upstream-source/043-COPYING",
+        "licenses/upstream-source/044-LICENSE",
+        "licenses/upstream-source/045-COPYING",
+        "licenses/upstream-source/046-COPYING",
+        "licenses/upstream-source/047-LICENSE.build",
+        "licenses/upstream-source/048-LICENCE.md",
+        "licenses/upstream-source/049-LICENSE",
+        "licenses/upstream-source/050-COPYING",
+        "licenses/upstream-source/051-LICENSE.build",
+        "licenses/upstream-source/052-LICENSE",
+        "licenses/upstream-source/053-LICENSE",
+        "licenses/upstream-source/054-LICENSE",
+        "licenses/upstream-source/055-LICENSE.build",
+        "licenses/upstream-source/056-LICENSE",
+        "licenses/upstream-source/057-LICENSE.Info-Zip",
+        "licenses/upstream-source/058-LICENSE.build",
+        "licenses/upstream-source/059-COPYING",
+        "licenses/upstream-source/060-LICENSE",
+        "licenses/upstream-source/061-LICENSE",
+        "licenses/upstream-source/062-LICENSE.build"
+      ],
+      "archive": {
+        "name": "android-tools-static-macos-standardlayout-universal2.tar.gz",
+        "url": "https://github.com/meator/android-tools-static/releases/download/36.0.1/android-tools-static-macos-standardlayout-universal2.tar.gz",
+        "size": 9326155,
+        "sha256": "e09c1a653d894b736a16a6ce19667a5c51b2f4c5ed184b518101f981afa1d56f",
+        "matches_upstream_asset_digest": true
+      },
+      "validation": {
+        "architecture_static": true,
+        "version_executed": false,
+        "device_tested": false
+      },
+      "minimum_macos": {
+        "x86_64": "10.15",
+        "arm64": "11.0"
+      }
+    }
+  },
+  "notice": "NOTICE.md",
+  "corresponding_source": {
+    "name": "adb-36.0.1-corresponding-source.zip",
+    "url": "https://github.com/TubeLiu/tubeliu-scraper/releases/download/v0.2.0/adb-36.0.1-corresponding-source.zip",
+    "size": 427832259,
+    "sha256": "db52512888b60267f60e4ccf4dc724dc43fd8fde7be8f37b9f35386a3b9392d7",
+    "source_archive_verified_sha256": "6aff0c12aa8d22f3621845fb2dd7e1fb874546761376f9791312c4939cab38e6",
+    "additional_input_files": 22,
+    "full_cpp_rebuild_performed": false
+  }
+}

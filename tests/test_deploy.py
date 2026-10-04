@@ -4,6 +4,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
 import re
 import sys
 import tarfile
@@ -15,6 +16,8 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import deploy
 import workbench_store
+import identity
+from test_identity_deploy import approved_entry
 from esde_core import load_json, write_json, sha256
 
 
@@ -23,6 +26,9 @@ class LocalDeploymentTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name)
+        patcher = patch.dict(os.environ, {identity.KEY_ENV: str(self.base / "private" / "key.json")})
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.target = self.base / "ES-DE"
         self.target.mkdir()
         self.sources = self.base / "prepared"
@@ -45,13 +51,19 @@ class LocalDeploymentTests(unittest.TestCase):
         self.rom = self.base / "Roms" / "nds" / "中文.nds"
         self.rom.parent.mkdir(parents=True)
         self.rom.write_bytes(b"untouched ROM")
+        media_rom = self.base / "Roms" / "nds" / "子目录" / "中文 游戏.nds"
+        media_rom.parent.mkdir(parents=True)
+        media_rom.write_bytes(b"synthetic second ROM")
+        self.catalog = self.base / "identities.json"
+        write_json(self.catalog, {"schema_version": 1, "entries": [approved_entry(self.rom, "nds", "中文.nds", {"name": "中文名"}), approved_entry(media_rom, "nds", "子目录/中文 游戏.nds", media=[self.entries[1]])]})
+        write_json(self.manifest, {"files": self.entries, "identity_catalog": str(self.catalog)})
 
     def command(self, arguments):
         with contextlib.redirect_stdout(io.StringIO()):
             return deploy.main(arguments)
 
     def plan(self):
-        return self.command(["plan", "--manifest", str(self.manifest), "--target", "local", "--esde-root", str(self.target), "--out", str(self.run)])
+        return self.command(["plan", "--manifest", str(self.manifest), "--target", "local", "--esde-root", str(self.target), "--rom-root", str(self.base / "Roms"), "--out", str(self.run)])
 
     def action(self, action):
         return self.command([action, "--run", str(self.run)])
@@ -163,6 +175,12 @@ class LocalDeploymentTests(unittest.TestCase):
 
 
 class FakeAndroidLifecycleTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        patcher = patch.dict(os.environ, {identity.KEY_ENV: str(Path(self.temp.name) / "private" / "key.json")})
+        patcher.start()
+        self.addCleanup(patcher.stop)
     def test_fake_android_disconnect_resume_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
@@ -172,7 +190,11 @@ class FakeAndroidLifecycleTests(unittest.TestCase):
             source.write_bytes(desired)
             manifest = base / "manifest.json"
             relative = "downloaded_media/nds/videos/中文.mp4"
-            write_json(manifest, {"files": [{"local": str(source), "relative": relative}]})
+            rom = base / "中文.nds"
+            rom.write_bytes(b"synthetic Android fixture ROM")
+            catalog = base / "catalog.json"
+            write_json(catalog, {"schema_version": 1, "entries": [approved_entry(rom, "nds", "中文.nds", media=[{"local": str(source), "relative": relative}])]})
+            write_json(manifest, {"files": [{"local": str(source), "relative": relative}], "identity_catalog": str(catalog)})
             run = base / "run"
             class FakeTarget:
                 roots = {"esde": "/sdcard/ES-DE"}
@@ -203,8 +225,8 @@ class FakeAndroidLifecycleTests(unittest.TestCase):
             def command(args):
                 with contextlib.redirect_stdout(io.StringIO()):
                     return deploy.main(args)
-            with patch.object(deploy, "create_target", return_value=FakeTarget()):
-                self.assertEqual(command(["plan", "--manifest", str(manifest), "--target", "android", "--esde-root", "/sdcard/ES-DE", "--serial", "fake-selected", "--out", str(run)]), 0)
+            with patch.object(deploy, "create_target", return_value=FakeTarget()), patch.object(deploy, "rom_fingerprint", return_value=identity.fingerprint_file(rom)), patch.object(deploy, "rom_inventory", return_value=["中文.nds"]):
+                self.assertEqual(command(["plan", "--manifest", str(manifest), "--target", "android", "--esde-root", "/sdcard/ES-DE", "--rom-root", "/sdcard/Roms", "--serial", "fake-selected", "--out", str(run)]), 0)
                 self.assertEqual(command(["apply", "--run", str(run)]), 2)
                 self.assertEqual(command(["apply", "--run", str(run)]), 0)
                 self.assertEqual(command(["verify", "--run", str(run)]), 0)
@@ -388,7 +410,12 @@ class FakeAndroidLifecycleTests(unittest.TestCase):
             source.write_bytes(b"desired")
             relatives = ["downloaded_media/nds/videos/游戏" + str(i) + ".mp4" for i in range(3)]
             manifest, run = base / "manifest.json", base / "run"
-            write_json(manifest, {"files": [{"local": str(source), "relative": relative} for relative in relatives]})
+            rom = base / "fixture.nds"
+            rom.write_bytes(b"synthetic batch fixture ROM")
+            catalog = base / "catalog.json"
+            entries = [approved_entry(rom, "nds", "游戏" + str(i) + ".nds", media=[{"local": str(source), "relative": relative}]) for i, relative in enumerate(relatives)]
+            write_json(catalog, {"schema_version": 1, "entries": entries})
+            write_json(manifest, {"files": [{"local": str(source), "relative": relative} for relative in relatives], "identity_catalog": str(catalog)})
             class FakeTarget:
                 data = {relatives[0]: b"original", relatives[1]: None, relatives[2]: None}
                 hash_calls = 0
@@ -425,8 +452,8 @@ class FakeAndroidLifecycleTests(unittest.TestCase):
             def command(arguments):
                 with contextlib.redirect_stdout(io.StringIO()):
                     return deploy.main(arguments)
-            with patch.object(deploy, "create_target", return_value=target):
-                self.assertEqual(command(["plan", "--manifest", str(manifest), "--target", "android", "--esde-root", "/sdcard/ES-DE", "--serial", "selected-fake", "--out", str(run)]), 0)
+            with patch.object(deploy, "create_target", return_value=target), patch.object(deploy, "rom_fingerprint", return_value=identity.fingerprint_file(rom)), patch.object(deploy, "rom_inventory", return_value=["游戏" + str(i) + ".nds" for i in range(3)]):
+                self.assertEqual(command(["plan", "--manifest", str(manifest), "--target", "android", "--esde-root", "/sdcard/ES-DE", "--rom-root", "/sdcard/Roms", "--serial", "selected-fake", "--out", str(run)]), 0)
                 self.assertEqual(target.hash_calls, 2)
                 self.assertEqual(command(["apply", "--run", str(run)]), 2)
                 state = load_json(run / "deployment_state.json")

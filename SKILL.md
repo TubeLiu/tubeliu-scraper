@@ -13,7 +13,7 @@ description: 刮削、中文化和修复 ES-DE 游戏资料与媒体。触发词
 
 先用 `scripts/workbench.py init --run RUN --title TITLE` 建立任务，再用 `scripts/launch_workbench.py --runs RUNS` 启动工作台；需要同 Wi-Fi 访问时加 `--lan`。将程序实际返回的完整链接交给用户并打开预览，访问令牌由启动器自动生成。
 
-安卓设备用 `scripts/esde.py devices` 确认已授权的序列号及真实 ES-DE、ROM 根目录；多个设备不能按列表顺序选择。用 `snapshot-android` 取得只读快照，本地库用 `audit`。扫描和命令细节按需读 [references/workflow.md](references/workflow.md)。
+安卓设备先用 `scripts/adb_runtime.py` 检查 ADB，再用 `scripts/esde.py devices` 确认已授权的序列号及真实 ES-DE、ROM 根目录；多个设备不能按列表顺序选择。优先使用 skill 随包的对应 Windows/macOS 工具，用户明确指定的 `--adb` 或 `ADB` 环境变量优先。检查通过后固定完整路径；随包工具不可用时按 [references/workflow.md](references/workflow.md) 检查本机 SDK 或给出安装指引。用 `snapshot-android` 取得只读快照，本地库用 `audit`。
 
 ## 配置资料来源
 
@@ -21,19 +21,19 @@ description: 刮削、中文化和修复 ES-DE 游戏资料与媒体。触发词
 
 若接口还缺少开发者授权，按 [references/sources-and-media.md](references/sources-and-media.md) 提供官方申请入口和下一步。用户账号配置成功不等于接口已获授权，服务端验证通过前不能声称可用。
 
-用户可以跳过配置：继续扫描、展示和整理已有资源，使用可访问的公开来源补充；说明无法调用该服务批量查询与获取媒体，补齐范围和速度可能受限，部分游戏会留下缺项。同一任务不逐游戏重复询问；仅审计现有资源时不要求在线凭据。
+用户可以跳过配置：继续扫描、展示、整理已有资源和修复路径；公开来源可用于研究候选。说明当前自动写入新资料与媒体需要可核实的身份凭证，缺少此服务配置或无精确匹配时，相关条目保留待确认。同一任务不逐游戏重复询问；仅审计现有资源时不要求在线凭据。
 
 ## 匹配游戏与补齐资源
 
-按实际文件建立任务，区分地区、版本、改版、多碟和重复文件。先确认作品身份，再补名称、简介、厂商、类型、日期和人数；优先作品官方及对应游戏平台资料。无法核实的字段保留原值或空值并标记未知，不能猜填。
+按实际文件建立任务，区分地区、版本、改版、多碟和重复文件。新资料与媒体必须通过 [references/identity.md](references/identity.md) 的机器检查：实际 ROM 字节、平台、服务返回的唯一 ROM 记录与具体写入内容一致，再生成身份目录供准备和部署复核。文件名相似、手写来源 JSON、`identity_confirmed=true` 或目视说明不能替代凭证。无法核实的条目保持原值并标记待确认，不能猜填或手工签造报告。
 
-原生媒体为 `covers / screenshots / titlescreens / marquees / miximages / videos`，按实际 ROM 的相对目录与文件 stem 映射，遵循现有 ES-DE 配置。素材必须属于对应作品和版本；占位图、生成图及错配素材不能算完成。用 `scripts/media.py` 检查解码和视频规格，另做素材身份的目视确认。
+原生媒体为 `covers / screenshots / titlescreens / marquees / miximages / videos`，按实际 ROM 的相对目录与文件 stem 映射，遵循现有 ES-DE 配置。素材必须来自该游戏候选返回的对应类型 URL，下载字节与凭证一致；占位图、生成图及错配素材不能算完成。用 `scripts/media.py` 检查解码和视频规格，另做内容目视确认。
 
-默认新视频约 30 秒、低于 6 MB、最高 720 像素高、H.264；可按用户要求调整。实机录像标记 `gameplay_video`，截图预览标记 `screenshot_preview`，标题图预览标记 `original_title_art_preview`，不能将预览称为实机录像。来源与媒体处理细节见 [references/sources-and-media.md](references/sources-and-media.md)。
+默认新视频约 30 秒、低于 6 MB、最高 720 像素高、H.264；可按用户要求调整。实机录像标记 `gameplay_video`，截图预览标记 `screenshot_preview`，标题图预览标记 `original_title_art_preview`，不能将预览称为实机录像。转码或自制组合图可供预览，但当前缺少派生凭证时不能部署；不能为满足规格跳过身份检查。来源与媒体处理细节见 [references/sources-and-media.md](references/sources-and-media.md)。
 
 ## 保留历史并写入
 
-用 `normalize` 或 `prepare` 生成独立 XML 输出，每个实际游戏文件恰好对应一个 `./真实相对文件名` 引用，逐项检查重复与路径。完整保留 `playcount / playtime / lastplayed`、收藏、隐藏、模拟器、排序以及私有字段、属性和多顶层 XML。历史冲突不能简单相加；无法无损处理时阻止对应写入，保留原始快照。
+用 `normalize` 或 `prepare` 生成独立 XML 输出；资料补丁必须传入 `--identity-catalog`。每个实际游戏文件恰好对应一个 `./真实相对文件名` 引用，逐项检查重复与路径。路径修复不从重复旧节点自动补进名称、简介或媒体。完整保留 `playcount / playtime / lastplayed`、收藏、隐藏、模拟器、排序以及私有字段、属性和多顶层 XML。历史冲突不能简单相加；无法无损处理时阻止对应写入，保留原始快照。
 
 用户已请求补齐并安装时继续已授权的写入；仅审计或查看候选资料时不写设备。写入前按 [references/deployment.md](references/deployment.md) 使用 `scripts/deploy.py` 的显式文件清单、不可变备份和 SHA 复核。让 ES-DE 正常保存并退出后再写入，不中断正在进行的游戏，不修改 ROM、获取 root 或扩大目录权限。
 

@@ -15,6 +15,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
+from adb_runtime import AdbResolutionError, PLATFORM_TOOLS_URL, resolve_adb
+
 MAX_BYTES = 200 * 1024 * 1024
 MEDIA_TYPES = {"covers", "screenshots", "titlescreens", "marquees", "miximages", "videos",
                "backcovers", "3dboxes", "physicalmedia", "fanart"}
@@ -190,6 +192,14 @@ def validate_remote_media(run, descriptor):
 
 
 def _require_device(profile):
+    # An old bare `adb` profile must be explicitly rebound after discovery;
+    # a changed PATH cannot silently select a different transport executable.
+    if not Path(profile["adb"]).is_absolute():
+        raise PreviewUnavailable("adb_not_bound", "请先检查 ADB，并用确认后的完整路径重新绑定媒体预览：" + PLATFORM_TOOLS_URL)
+    try:
+        profile["adb"] = resolve_adb(profile["adb"])
+    except AdbResolutionError as error:
+        raise PreviewUnavailable("adb_unavailable", "已绑定的 ADB 不可用。请修复该路径或安装官方 Platform-Tools：" + PLATFORM_TOOLS_URL) from error
     try:
         result = subprocess.run([profile["adb"], "devices", "-l"], stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, timeout=15, check=False)

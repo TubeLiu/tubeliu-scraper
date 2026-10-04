@@ -1,0 +1,4 @@
+# Preserve upstream binary, notice and manifest bytes for checksum validation.
+assets/adb/** -text
+# These upstream texts are retained verbatim, including their whitespace.
+assets/adb/licenses/** -whitespace

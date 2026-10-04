@@ -15,6 +15,8 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import esde
 import esde_core as core
+import identity
+from test_identity_prepare import verified_catalog
 
 
 class XmlRegressionTests(unittest.TestCase):
@@ -38,7 +40,7 @@ class XmlRegressionTests(unittest.TestCase):
         games = normalized.find("gameList").findall("game")
         self.assertEqual(len(games), 1)
         self.assertEqual(games[0].findtext("path"), "./" + self.file)
-        self.assertEqual(games[0].findtext("name"), "中文游戏")
+        self.assertIsNone(games[0].findtext("name"), "A duplicate's metadata must not silently fill the authoritative history node")
         self.assertEqual(games[0].findtext("playcount"), "8")
         self.assertEqual(games[0].findtext("playtime"), "111")
         self.assertEqual(games[0].findtext("customField/value"), "秘密配置保留")
@@ -79,7 +81,12 @@ class XmlRegressionTests(unittest.TestCase):
 
     def test_patch_only_factual_fields_and_preserves_history(self):
         doc = self.document('<game><path>./' + self.file + '</path><playcount>7</playcount><lastplayed>20261003T000000</lastplayed><userField>private</userField></game>')
-        output, _ = core.normalize_document(doc, self.rom, [self.file], [{"file": self.file, "metadata": {"name": "补充中文", "desc": "简介"}}])
+        metadata = {"name": "补充中文", "desc": "简介"}
+        key = self.base / "isolated-test-key.json"
+        with patch.object(identity, "_key", return_value=b"isolated-fixture-key-material-32!"):
+            catalog = verified_catalog(self.rom / self.file, "nds", self.file, metadata, key)
+            output, _ = core.normalize_document(doc, self.rom, [self.file], [{"file": self.file, "metadata": metadata}],
+                                                 system="nds", identity_catalog=catalog, identity_key_path=key)
         game = output.find("gameList/game")
         self.assertEqual(game.findtext("playcount"), "7")
         self.assertEqual(game.findtext("userField"), "private")
@@ -220,7 +227,7 @@ class AdbSnapshotTests(unittest.TestCase):
                         raise esde.AdbError("Selected device disconnected")
                     return data
             arguments = ["snapshot-android", "--serial", "selected", "--esde-root", "/sdcard/ES-DE", "--rom-root", "/storage/Roms", "--out", str(out)]
-            with patch.object(esde, "Adb", FakeAdb), contextlib.redirect_stdout(io.StringIO()):
+            with patch.object(esde, "resolve_selected_adb", return_value="/fixture/adb"), patch.object(esde, "Adb", FakeAdb), contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(esde.main(arguments), 2)
                 self.assertFalse(core.load_json(out / "manifest.json")["complete"])
                 self.assertEqual(esde.main(arguments), 0)

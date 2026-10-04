@@ -216,6 +216,18 @@ def merged_game(nodes, relative):
     for tag in tags:
         candidates = [child for node in sources for child in node if child.tag == tag]
         nonempty = [child for child in candidates if (child.text or "").strip() or len(child) or child.attrib]
+        if tag in {*METADATA_FIELDS, *MEDIA_XML_FIELDS}:
+            # A duplicate node can contain another game's accidentally copied
+            # metadata. Structural repair must not promote that data into the
+            # authoritative entry merely because its field was previously blank.
+            authoritative = [child for child in sources[0] if child.tag == tag]
+            result.extend(copy.deepcopy(child) for child in authoritative)
+            values = list(dict.fromkeys(ET.tostring(child, encoding="unicode") for child in nonempty))
+            if len(values) > 1 or not authoritative and nonempty:
+                conflicts.append({"file": relative, "tag": tag,
+                                  "chosen": [ET.tostring(child, encoding="unicode") for child in authoritative],
+                                  "values": values, "policy": "authoritative_node_only; new metadata requires identity receipt"})
+            continue
         chosen = (nonempty or candidates)[0]
         known = tag in {*METADATA_FIELDS, *MEDIA_XML_FIELDS, *PROTECTED_FIELDS}
         # Unknown/private elements can legitimately repeat. Preserve the whole
@@ -235,15 +247,37 @@ def merged_game(nodes, relative):
     return result, conflicts
 
 
-def normalize_document(document, system_root, actual, patches=None):
+def identity_catalog_entries(catalog):
+    """Reject ambiguous/caller-invented catalog shapes before any XML mutation."""
+    if not isinstance(catalog, dict) or set(catalog) != {"schema_version", "entries"} or type(catalog.get("schema_version")) is not int or catalog.get("schema_version") != 1 or not isinstance(catalog.get("entries"), list):
+        raise ValueError("Identity catalog must be {schema_version: 1, entries: [...]} with no extra fields")
+    result = {}
+    for entry in catalog["entries"]:
+        if not isinstance(entry, dict) or set(entry) != {"system", "file", "rom_fingerprint", "receipt"}:
+            raise ValueError("Identity catalog entries require only system, file, rom_fingerprint and receipt")
+        system, file = entry["system"], clean_relative(entry["file"])
+        if not isinstance(system, str) or not system or file != entry["file"] or not isinstance(entry["rom_fingerprint"], dict):
+            raise ValueError("Identity catalog entry has an invalid explicit system/file binding")
+        key = (system, file)
+        if key in result:
+            raise ValueError("Duplicate identity catalog entry: " + system + ":" + file)
+        result[key] = entry
+    return result
+
+
+def normalize_document(document, system_root, actual, patches=None, *, system=None,
+                       identity_catalog=None, identity_key_path=None, rom_fingerprint_reader=None):
     document = copy.deepcopy(document)
     root = document.find("gameList")
     grouped, unresolved = group_games(document, system_root, actual)
-    report = {"actual_files": len(actual), "created": 0, "merged_duplicate_nodes": 0, "normalized_references": 0, "conflicts": [], "unresolved_entries": unresolved, "protected_fields": list(PROTECTED_FIELDS), "patched": 0}
+    report = {"actual_files": len(actual), "created": 0, "merged_duplicate_nodes": 0, "normalized_references": 0, "conflicts": [], "unresolved_entries": unresolved, "protected_fields": list(PROTECTED_FIELDS), "patched": 0, "identity_checks": []}
     patch_map = {}
+    catalog = identity_catalog_entries(identity_catalog) if identity_catalog is not None else {}
     for patch in patches or []:
+        if not isinstance(patch, dict) or set(patch) - {"file", "metadata"}:
+            raise ValueError("Patch permits only file and metadata; identity comes from a separately verified catalog")
         file = clean_relative(patch.get("file", ""))
-        if file not in actual:
+        if file not in actual or patch.get("file") != file:
             raise ValueError("Patch must identify an existing actual ROM file: " + str(patch.get("file")))
         if file in patch_map:
             raise ValueError("Duplicate patch file: " + file)
@@ -252,6 +286,37 @@ def normalize_document(document, system_root, actual, patches=None):
             raise ValueError("Patch metadata permits only factual metadata fields: " + file)
         if any(value is not None and not isinstance(value, str) for value in metadata.values()):
             raise ValueError("Patch metadata values must be strings or null: " + file)
+        if metadata:
+            if not system or (system, file) not in catalog:
+                raise ValueError("Identity receipt required before adding or changing game metadata: " + file)
+            from identity import fingerprint_file, verify_receipt
+            entry = catalog[(system, file)]
+            if rom_fingerprint_reader is None:
+                candidate = Path(system_root) / Path(file)
+                if candidate.is_symlink() or not candidate.is_file():
+                    raise ValueError("Identity verification requires the actual regular ROM file: " + file)
+                root_path, actual_path = Path(system_root).resolve(), candidate.resolve()
+                try:
+                    actual_path.relative_to(root_path)
+                except ValueError:
+                    raise ValueError("ROM identity path escaped the explicit system root") from None
+                fingerprint = fingerprint_file(actual_path)
+            else:
+                if not callable(rom_fingerprint_reader):
+                    raise ValueError("Remote identity measurement must use a read-only device reader, never caller JSON fingerprints")
+                fingerprint = rom_fingerprint_reader(file)
+            declared = entry["rom_fingerprint"]
+            if not {"size", "sha256"} <= set(declared) or type(declared.get("size")) is not int or set(declared) - {"size", "sha256", "md5", "sha1", "crc"} or any(
+                fingerprint.get(key) != value for key, value in declared.items()
+            ):
+                raise ValueError("Identity catalog ROM fingerprint is stale or belongs to another game: " + file)
+            receipt = entry["receipt"]
+            signed_media = receipt.get("payload", {}).get("media", []) if isinstance(receipt, dict) else []
+            payload = verify_receipt(receipt, system=system, file=file, rom_fingerprint=fingerprint,
+                                     metadata=metadata, media=signed_media, key_path=identity_key_path)
+            report["identity_checks"].append({"system": system, "file": file,
+                                               "rom_fingerprint": fingerprint, "approved_metadata": metadata,
+                                               "receipt": receipt, "provider_game_id": payload.get("provider_game_id")})
         patch_map[file] = metadata
     for relative in sorted(actual):
         nodes = grouped.get(relative, [])
@@ -264,7 +329,10 @@ def normalize_document(document, system_root, actual, patches=None):
             report["normalized_references"] += sum(node.findtext("path", "") != "./" + relative for node in nodes)
         report["conflicts"].extend(conflicts)
         for tag, value in patch_map.get(relative, {}).items():
-            node = new.find(tag)
+            matches = new.findall(tag)
+            if len(matches) > 1 or matches and (len(matches[0]) or matches[0].attrib):
+                raise ValueError("Ambiguous or nested metadata requires a separate explicit repair: " + relative + ":" + tag)
+            node = matches[0] if matches else None
             if node is None:
                 node = ET.SubElement(new, tag)
             node.text = value

@@ -12,7 +12,7 @@
 
 普通用户账号可在 [官方注册页面](https://www.screenscraper.fr/membreinscription.php) 创建，账号密码是可选的另一组字段，不能替代开发者 ID 和密码。工作台的局域网访问令牌由启动器自动生成，与 ScreenScraper 凭据无关，不需要申请。
 
-用户暂不提供时，明确限制：不能通过 ScreenScraper API 批量查询游戏候选、用 ROM 哈希匹配资料，或获取其接口提供的封面、截图、标识和视频；其他公开来源的覆盖与速度可能较低，部分游戏或媒体仍会缺失，不能保证整库补齐。仍可扫描和预览已有资料与媒体、中文化和整理已有内容、按可访问公开来源补充、制作混合图，以及备份、校验并按用户授权回写。只将此来源标为未配置或已跳过，不将整个任务标为 blocked，不把待补齐项标为已完成。
+用户暂不提供时，明确限制：不能通过 ScreenScraper API 批量查询游戏候选、用 ROM 哈希匹配资料，或获取其接口提供的封面、截图、标识和视频。仍可扫描和预览已有内容、整理路径、备份恢复，以及从公开来源研究候选。当前新资料与媒体部署必须通过 [identity.md](identity.md) 的机器凭证；缺少配置或无精确匹配时这些条目保持待确认，不能仅凭人工说明回写。只将相关来源和写入条目标为受限，不把不依赖它的扫描与工作台阻塞，不把待补齐项标为已完成。
 
 ### 配置与自动复用
 
@@ -24,7 +24,7 @@
 
 保存或环境变量的字段为 `SCREENSCRAPER_DEVID`、`SCREENSCRAPER_DEVPASSWORD`；可选用户登录用 `SCREENSCRAPER_SSID`、`SCREENSCRAPER_SSPASSWORD`，两者一起提供。本地只读 ROM 可 `query --system-id ID --rom LOCAL_ROM --save RUN/candidates.json --run RUN`；安卓不要为了匹配把大 ROM 下载到电脑，可提供已测量的 `--name NAME --size BYTES --sha1 HASH`，或明确 `--search-name NAME` 进行名称候选搜索。平台 ID 从官方平台列表核对，不推测别的平台 ID。
 
-下载仅针对已选的素材，来源记录用去凭据的作品页或 API 路径、作品 ID、媒体 ID 与 hash。没有 API 开发者权限时可以使用已经授权的本地资源、官方公开素材和可访问作品资料继续工作，不把某一服务的凭据缺失扩展成全部任务阻塞。
+下载仅针对已选的素材，来源记录用去凭据的作品页或 API 路径、作品 ID、媒体 ID 与 hash，并保留实际响应处理器生成的身份封存。没有 API 开发者权限时可以展示已有资源、研究公开候选；不能把这些候选当成当前已支持的自动写入凭证，不把某一服务的凭据缺失扩展成全部任务阻塞。
 
 ## 媒体命名与内容
 
@@ -42,6 +42,6 @@ PY SKILL/scripts/media.py transcode --file SOURCE_VIDEO --out RUN/prepared/media
 PY SKILL/scripts/media.py check --root RUN/prepared/media --receipt RUN/media_qa.json --run RUN --ffprobe FFPROBE
 ```
 
-参数位置以子命令 `--help` 为准。明确身份时需 `--identity-confirmed --identity-note "实际审查依据"`，不为状态显示而填。新视频阈值可用 `--max-duration`、`--max-bytes`、`--max-height` 调整；当前脚本编码固定 H.264。批量 QA 用明确清单包含 path、kind、media_type 与身份依据；相同 hash 可复用既有人工凭证，不能跳过首次检查。
+参数位置以子命令 `--help` 为准。`--identity-confirmed --identity-note "实际审查依据"` 只记录目视说明，不能替代机器身份凭证或授权部署。新视频阈值可用 `--max-duration`、`--max-bytes`、`--max-height` 调整；当前脚本编码固定 H.264。转码与组合图目前缺少派生凭证时仅交付候选预览，不能把原始素材凭证套在变化后的字节上。批量 QA 用明确清单包含 path、kind、media_type 与身份依据。
 
 视觉 QA 凭证需列出检查对象、素材身份、代表性截图/播放结果、预览标记和检查时间。图片预览视频必须保存 `screenshot_preview` 或 `original_title_art_preview`，不能因为转成 mp4 就标记 gameplay。

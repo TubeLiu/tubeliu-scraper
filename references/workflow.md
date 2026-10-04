@@ -4,6 +4,12 @@
 
 ## 扫描安卓
 
+先运行 `PY SKILL/scripts/adb_runtime.py --out RUN/adb-check.json --run RUN`，使用其实际返回的完整 `executable` 路径，检查结果会进入工作台。发现顺序是明确 `--adb` → `ADB` 环境变量 → 对应系统/架构的随包 ADB → PATH → `ANDROID_SDK_ROOT` / `ANDROID_HOME` → 当前用户的常见 Android SDK 目录。明确指定但无效的工具会停止检查，不悄悄换工具。检查不连接设备、不修改 PATH。
+
+Windows SDK 常见位置是 `%LOCALAPPDATA%/Android/Sdk/platform-tools/adb.exe`；macOS 是 `~/Library/Android/sdk/platform-tools/adb`。随包工具启动前核对清单中的文件 SHA，随后运行版本检查，快照与部署固定绝对路径。macOS 如被系统安全策略阻止，记录实际原因并使用用户已有的可用 ADB；不自动移除 quarantine 或绕过安全检查。无任何可用工具时给出 [Google 官方 Platform-Tools](https://developer.android.com/tools/releases/platform-tools) 安装地址和 `--adb` 用法，本地库与工作台仍可运行。
+
+随包版本的具体支持范围、固定来源、许可和重建源码见 [assets/adb/NOTICE.md](../assets/adb/NOTICE.md) 与清单。Windows 为 x86_64，最低 Windows 10；macOS Intel 最低 10.15、Apple 芯片最低 11。未提供 Windows ARM64 原生版和 Linux 版时，检查本机明确可用的 ADB，不执行错误架构的文件。
+
 ```
 PY SKILL/scripts/esde.py devices --adb ADB
 PY SKILL/scripts/esde.py snapshot-android --adb ADB --serial SERIAL --esde-root REMOTE_ESDE --rom-root REMOTE_ROMS --out RUN/snapshot
@@ -34,13 +40,13 @@ PY SKILL/scripts/esde.py audit --rom-root LOCAL_ROMS --esde-root LOCAL_ESDE --ou
 {"games":[{"file":"子目录/真实文件.nds","metadata":{"name":"中文标题","desc":"有来源的简介","developer":"开发商","publisher":"发行商","genre":"角色扮演","players":"1","releasedate":"20061123T000000"}}]}
 ```
 
-可用资料字段以 `esde_core.METADATA_FIELDS` 和 CLI 为准，不写历史字段，不把文件路径放进 metadata。保留原始区域及版本标记，日期精度不足时在来源记录说明，不编造某月某日。制作补丁旁的 `sources.json` 记录实际文件、候选身份 ID、来源页、字段依据、日期精度、媒体类型与待核实项目。
+可用资料字段以 `esde_core.METADATA_FIELDS` 和 CLI 为准，不写历史字段，不把文件路径放进 metadata。保留原始区域及版本标记，日期精度不足时在来源记录说明，不编造某月某日。制作补丁旁的 `sources.json` 可记录候选、来源与待核实项目，但它不能授权写入。先按 [identity.md](identity.md) 为具体补丁建立经过核实的身份目录。
 
 ```
-PY SKILL/scripts/esde.py prepare --gamelist INPUT_XML --system SYS --snapshot RUN/snapshot --patch PATCH_JSON --out RUN/prepared/gamelists/SYS/gamelist.xml --run-dir RUN
+PY SKILL/scripts/esde.py prepare --gamelist INPUT_XML --system SYS --snapshot RUN/snapshot --serial SERIAL --remote-rom-root REMOTE_ROMS --patch PATCH_JSON --identity-catalog CATALOG_JSON --out RUN/prepared/gamelists/SYS/gamelist.xml --run-dir RUN
 ```
 
-本地改用 `--system-rom-root LOCAL_ROMS/SYS`。只修路径不改资料使用 `normalize`。脚本不会覆盖输入，输出旁有 `.report.json` 与 `.preserved.json`；部署前检查非空冲突与别名映射。扩展或系统无法识别时补明确配置，不能把未盘点文件算成处理完成。
+本地改用 `--system-rom-root LOCAL_ROMS/SYS`。只修路径不改资料使用 `normalize`，不需要在线服务。脚本不会覆盖输入；资料更改成功后冻结来源 XML、输出 XML 与身份目录的 SHA，并保存签名准备凭证。部署仍独立复查实际目标 ROM，不仅相信准备结果。输出旁有 `.report.json` 与 `.preserved.json`；部署前检查非空冲突与别名映射。扩展或系统无法识别时补明确配置，不能把未盘点文件算成处理完成。
 
 ## 复核
 

@@ -16,6 +16,7 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import media
 import screenscraper as provider
+import identity
 from workbench_store import emit_update, get_events, get_state, init_run
 
 
@@ -307,6 +308,7 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(candidate["description_zh"], "中文说明")
         self.assertFalse(candidate["identity_confirmed"])
         self.assertTrue(candidate["review_required"])
+        self.assertNotIn("identity_source", result, "An injected opener must not mint a real online trust seal")
         self.assertNotIn("secret-value", json.dumps(result))
         self.assertNotIn("secret-pass", json.dumps(result))
         with self.assertRaises(ValueError):
@@ -322,6 +324,7 @@ class ProviderTests(unittest.TestCase):
         self.assertNotIn("fake-developer", serialized)
         self.assertFalse(result["identity_confirmed"])
         self.assertFalse(result["technical_verified"])
+        self.assertNotIn("identity_download", result)
         with self.assertRaises(ValueError):
             provider.download(url, self.root / "out", "../escape.png", env=self.env, opener=fake_open)
         with self.assertRaises(ValueError):
@@ -339,6 +342,38 @@ class ProviderTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             provider.download("https://api.screenscraper.fr/media.png", self.root, "bad.png", opener=fake_open)
         self.assertFalse((self.root / "bad.png").exists())
+
+    def test_injected_queries_and_downloads_do_not_touch_default_signing_key(self):
+        def query_open(url, timeout):
+            return FakeResponse(json.dumps({"response": {"jeu": {"id": "42", "systeme": {"id": "15"}}}}).encode(), url=url)
+        def media_open(url, timeout):
+            return FakeResponse(b"isolated media bytes", {"Content-Type": "image/png"}, url=url)
+        with patch.object(identity, "default_key_path", side_effect=AssertionError("fixture must not read real user's key")):
+            query = provider.query(15, {"md5": "a" * 32, "romtaille": 123}, env=self.env, opener=query_open)
+            download = provider.download("https://api.screenscraper.fr/fixture.png", self.root, "fixture.png", opener=media_open)
+        self.assertNotIn("identity_source", query)
+        self.assertNotIn("identity_download", download)
+
+    def test_response_seals_bind_observed_query_and_actual_download_bytes(self):
+        key = self.root / "isolated-signing-key.json"
+        def query_open(url, timeout):
+            return FakeResponse(json.dumps({"response": {"jeu": {"id": "42", "systeme": {"id": "15"}}}}).encode(), url=url)
+        def media_open(url, timeout):
+            return FakeResponse(b"observed fixture bytes", {"Content-Type": "image/png"}, url=url)
+        with patch.object(identity, "_key", return_value=b"isolated-signing-fixture-key"):
+            # Patching the real boundary is explicit here and uses only a test
+            # key; production custom openers without a key remain unsealed.
+            with patch.object(provider, "default_open", side_effect=query_open):
+                query = provider.query(15, {"md5": "a" * 32, "romtaille": 123}, env=self.env, identity_key_path=key)
+            report = identity.verify_payload(query["identity_source"], "provider_report", key_path=key)
+            self.assertEqual(report["query"]["romtaille"], 123)
+            self.assertFalse(report["identity_confirmed"])
+            with patch.object(provider, "default_open", side_effect=media_open):
+                download = provider.download("https://api.screenscraper.fr/observed.png", self.root, "observed.png", identity_key_path=key)
+            observed = identity.verify_payload(download["identity_download"], "provider_download", key_path=key)
+            self.assertEqual(observed["bytes"], len(b"observed fixture bytes"))
+            self.assertEqual(observed["sha256"], hashlib.sha256(b"observed fixture bytes").hexdigest())
+            self.assertFalse(observed["identity_confirmed"])
 
     def test_provider_error_urls_and_invalid_json_do_not_escape(self):
         def unavailable(url, timeout):

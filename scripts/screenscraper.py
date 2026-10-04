@@ -190,23 +190,29 @@ def read_bounded(response, max_bytes, handle=None):
 
 
 def hash_rom(path, run=None):
-    path = Path(path).resolve()
+    path = Path(path)
+    if path.is_symlink():
+        raise ValueError("ROM hashing requires the selected regular file, not a symlink")
+    path = path.resolve()
     if not path.is_file():
         raise ValueError("ROM must be a regular local file; folder hashing needs an explicitly selected ROM file")
-    md5, sha1, crc, processed, total = hashlib.md5(), hashlib.sha1(), 0, 0, path.stat().st_size
+    before = path.stat()
+    md5, sha1, sha256, crc, processed, total = hashlib.md5(), hashlib.sha1(), hashlib.sha256(), 0, 0, before.st_size
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             md5.update(chunk)
             sha1.update(chunk)
+            sha256.update(chunk)
             crc = zlib.crc32(chunk, crc)
             processed += len(chunk)
             if run and (processed % (64 * 1024 * 1024) == 0 or processed == total):
                 emit_update(run, phase="hash", status="running", completed=processed, total=total, message="Hashing explicitly selected ROM file")
-    if processed != total:
-        raise ValueError("ROM changed size while hashing")
+    after = path.stat()
+    if processed != total or (before.st_size, before.st_mtime_ns, before.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ino):
+        raise ValueError("ROM changed while hashing")
     if run:
         emit_update(run, phase="hash", status="running", phase_status="done", completed=processed, total=total, message="Selected ROM hashes measured")
-    return {"romnom": path.name, "romtaille": total, "md5": md5.hexdigest(), "sha1": sha1.hexdigest(), "crc": format(crc & 0xffffffff, "08X"), "romtype": "iso" if path.suffix.lower() == ".iso" else "rom"}
+    return {"romnom": path.name, "romtaille": total, "md5": md5.hexdigest(), "sha1": sha1.hexdigest(), "sha256": sha256.hexdigest(), "crc": format(crc & 0xffffffff, "08X"), "romtype": "iso" if path.suffix.lower() == ".iso" else "rom"}
 
 
 def _text(value):
@@ -250,7 +256,7 @@ def normalize_game(game):
     return redact({"provider": "screenscraper", "provider_game_id": game.get("id"), "system": game.get("systeme", {}), "name": chinese_name or fallback_name, "chinese_name": chinese_name or None, "description_zh": chinese_description or None, "developer": _text(game.get("developpeur")), "publisher": _text(game.get("editeur")), "players": _text(game.get("joueurs")), "dates": game.get("dates", {}), "rom_evidence": game.get("rom", game.get("roms", {})), "media_candidates": media, "identity_confirmed": False, "review_required": True, "unknown": [key for key, value in (("chinese_name", chinese_name), ("description_zh", chinese_description)) if not value], "source_documentation": DOCUMENTATION})
 
 
-def query(system_id, rom_fields=None, search_name=None, *, env=None, opener=None, max_bytes=12000000):
+def query(system_id, rom_fields=None, search_name=None, *, env=None, opener=None, max_bytes=12000000, identity_key_path=None):
     if not str(system_id).isdigit() or int(system_id) <= 0:
         raise ValueError("system_id must be the official positive numeric ScreenScraper system ID")
     auth = credentials(env)
@@ -282,10 +288,16 @@ def query(system_id, rom_fields=None, search_name=None, *, env=None, opener=None
         games = [games]
     if not isinstance(games, list):
         games = []
-    return {"provider": "screenscraper", "endpoint": endpoint, "queried_at": now(), "query": redact({"systemeid": system_id, **fields}), "candidates": [normalize_game(game) for game in games if isinstance(game, dict)], "identity_confirmed": False, "review_required": True}
+    result = {"provider": "screenscraper", "endpoint": endpoint, "queried_at": now(), "query": redact({"systemeid": system_id, **fields}), "candidates": [normalize_game(game) for game in games if isinstance(game, dict)], "identity_confirmed": False, "review_required": True}
+    # A test/injected opener is not an authenticated online provider. Explicit
+    # fixture keys belong to isolated tests and must never load the user's key.
+    if opener is None or identity_key_path is not None:
+        from identity import seal_provider_report
+        result["identity_source"] = seal_provider_report(result, key_path=identity_key_path)
+    return result
 
 
-def download(url, out, relative, *, env=None, opener=None, max_bytes=100000000):
+def download(url, out, relative, *, env=None, opener=None, max_bytes=100000000, identity_key_path=None):
     parts = safe_url(url)
     parameters = dict(parse_qsl(parts.query, keep_blank_values=True))
     if any(SECRET_KEY.match(key) for key in parameters):
@@ -325,6 +337,9 @@ def download(url, out, relative, *, env=None, opener=None, max_bytes=100000000):
             target.unlink(missing_ok=True)
         raise Blocked("Selected media could not be downloaded; partial output was not accepted") from None
     provenance = redact({"provider": "screenscraper", "source_url": url, "downloaded_at": now(), "path": str(target), "bytes": size, "sha256": digest, "status": "downloaded_unverified", "identity_confirmed": False, "technical_verified": False})
+    if opener is None or identity_key_path is not None:
+        from identity import seal_download
+        provenance["identity_download"] = seal_download(provenance, key_path=identity_key_path)
     Path(str(target) + ".provenance.json").write_text(json.dumps(provenance, ensure_ascii=False, indent=2), encoding="utf-8")
     return provenance
 
@@ -354,6 +369,7 @@ def main(argv=None):
     for cli in (query_cli, download_cli):
         cli.add_argument("--run")
         cli.add_argument("--job-id")
+        cli.add_argument("--identity-key", help="Explicit trusted signing key path; otherwise use the current user's protected local key")
     args = parser.parse_args(argv)
     phase = "identify" if args.command == "query" else "download"
     try:
@@ -380,12 +396,12 @@ def main(argv=None):
             emit_update(args.run, phase=phase, status="running", completed=0, total=1, message="Explicit ScreenScraper " + args.command)
         if args.command == "query":
             fields = hash_rom(args.rom, args.run) if args.rom else {"romnom": args.name, "romtaille": args.size, "md5": args.md5, "sha1": args.sha1, "crc": args.crc, "romtype": "rom"}
-            result = query(args.system_id, fields, args.search_name)
+            result = query(args.system_id, fields, args.search_name, identity_key_path=args.identity_key)
             if args.save:
                 Path(args.save).parent.mkdir(parents=True, exist_ok=True)
                 Path(args.save).write_text(json.dumps(redact(result), ensure_ascii=False, indent=2), encoding="utf-8")
         else:
-            result = download(args.url, args.out, args.relative, max_bytes=args.max_bytes)
+            result = download(args.url, args.out, args.relative, max_bytes=args.max_bytes, identity_key_path=args.identity_key)
         if args.run:
             if args.job_id:
                 with connect(args.run) as db:

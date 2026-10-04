@@ -245,10 +245,27 @@ class ReadOnlyCacheTests(unittest.TestCase):
 
     def test_explicit_serial_unauthorized_never_selects_first_attached_device(self):
         result = subprocess.CompletedProcess([], 0, b"List of devices attached\nother device\nexplicit-tablet unauthorized\n", b"")
-        with patch.object(cache.subprocess, "run", return_value=result):
+        executable = str((self.run / "adb.exe").resolve())
+        with patch.object(cache, "resolve_adb", return_value=executable), patch.object(cache.subprocess, "run", return_value=result):
             with self.assertRaises(cache.PreviewUnavailable) as error:
-                cache._require_device({"adb": "explicit-adb", "serial": "explicit-tablet"})
+                cache._require_device({"adb": executable, "serial": "explicit-tablet"})
         self.assertEqual(error.exception.code, "device_unauthorized")
+
+    def test_legacy_bare_adb_profile_requires_explicit_rebinding(self):
+        with patch.object(cache.subprocess, "run") as run:
+            with self.assertRaises(cache.PreviewUnavailable) as error:
+                cache._require_device({"adb": "adb", "serial": "explicit-tablet"})
+        self.assertEqual(error.exception.code, "adb_not_bound")
+        run.assert_not_called()
+
+    def test_missing_bound_adb_blocks_device_read_with_install_hint(self):
+        executable = str((self.run / "missing-adb.exe").resolve())
+        with patch.object(cache, "resolve_adb", side_effect=cache.AdbResolutionError("missing")), patch.object(cache.subprocess, "run") as run:
+            with self.assertRaises(cache.PreviewUnavailable) as error:
+                cache._require_device({"adb": executable, "serial": "explicit-tablet"})
+        self.assertEqual(error.exception.code, "adb_unavailable")
+        self.assertIn("developer.android.com", error.exception.message)
+        run.assert_not_called()
 
     def test_binary_stream_uses_exec_out_and_rejects_truncation_and_growth(self):
         class FakeProcess:

@@ -1,0 +1,29 @@
+This project is a build system port of Google's AdbWinApi and AdbWinUsb
+libraries licensed under the Apache 2.0 license. The original source is
+contained in Google's android/platform/development.git repository which can be
+found at https://android.googlesource.com/platform/development.git/
+
+This project is based on https://github.com/msys2/adbwinapi, which is also
+licensed under Apache 2.0.
+
+This project is licensed under Apache 2.0 license. You can find a copy of the
+license in a LICENSE file in the repository, in prebuilt release archives and
+in source release archives.
+
+In comparison to Google's original project, this project makes the following
+changes:
+- Several patches are applied on top of Google's code. Some of these patches
+  originate from https://github.com/msys2/adbwinapi . They can be found in the
+  build_template/subprojects/packagefiles/diff_files/ directory in the code
+  repository (not in released source archives).
+- A Meson build system is added, including infrastructure that generates it,
+  CI/CD workflows, Meson Wrap integration and documentation of the build
+  process.
+- Prebuilt release archives and source archives are provided as release
+  artifacts.
+- Released source archives only include the host/ directory of the
+  android/platform/development.git repository as this directory contains the
+  source code and supplementary files for AdbWinApi and AdbWinUsbApi.
+
+  The released source files also include the Meson build system and patches
+  described above.

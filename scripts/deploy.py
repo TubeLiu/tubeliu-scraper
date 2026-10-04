@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path, PurePosixPath
 
 from esde import Adb, AdbError, Reporter, now, remote_root
-from esde_core import CORE_MEDIA, parse_document, sha256, write_json, load_json
+from esde_core import CORE_MEDIA, PROTECTED_FIELDS, METADATA_FIELDS, canonical_reference, merged_game, parse_document, sha256, write_json, load_json
 
 
 class DeploymentError(RuntimeError):
@@ -28,6 +28,274 @@ class DeploymentError(RuntimeError):
 
 class ThemeReadOnlyError(DeploymentError):
     pass
+
+
+def identity_api():
+    # Import lazily so inspections do not create or read an identity key.
+    import identity
+    return identity
+
+
+def catalog_entries(data):
+    from esde_core import identity_catalog_entries
+    try:
+        validated = identity_catalog_entries(data)
+    except (ValueError, TypeError, AttributeError) as error:
+        raise DeploymentError("Identity catalog has an unsupported or ambiguous schema") from error
+    result = {}
+    for entry in validated.values():
+        if not isinstance(entry, dict) or not isinstance(entry.get("receipt"), dict):
+            raise DeploymentError("Identity catalog entries require signed receipts")
+        payload = entry["receipt"].get("payload", {})
+        if not isinstance(payload, dict):
+            raise DeploymentError("Identity receipt payload must be an object")
+        for field in ("system", "file", "rom_fingerprint"):
+            if entry.get(field) != payload.get(field):
+                raise DeploymentError("Catalog wrapper does not match its signed identity")
+        key = (entry["system"], entry["file"])
+        if key in result:
+            raise DeploymentError("Identity catalog has ambiguous duplicate games")
+        relative_path(entry["system"] + "/" + entry["file"])
+        result[key] = entry
+    return result
+
+
+def xml_node_value(node):
+    tag = node.tag if isinstance(node.tag, str) else "#comment"
+    text = node.text or ""
+    if len(node) and not text.strip():
+        text = ""
+    return (tag, tuple(sorted(node.attrib.items())), text, tuple(xml_node_value(child) for child in node))
+
+
+def xml_fields(node):
+    fields = {}
+    for child in node:
+        if not isinstance(child.tag, str):
+            fields.setdefault("#comments", []).append(xml_node_value(child))
+            continue
+        if child.tag in {*METADATA_FIELDS, *PROTECTED_FIELDS, "path"}:
+            if child.tag in fields or len(child) or child.attrib:
+                raise DeploymentError("Ambiguous or nested factual/history fields require a separate explicit repair")
+            fields[child.tag] = child.text or ""
+        else:
+            # Repeated private elements are preserved as complete groups.
+            fields.setdefault(child.tag, []).append(xml_node_value(child))
+    return fields
+
+
+def xml_changes(original, prepared, system, rom_root, actual=None):
+    """Compare content, not formatting; paths can normalize within one ROM root.
+
+    No source manifest can classify an arbitrary changed title as structural.
+    Protected history and unknown game fields cannot be changed by deployment.
+    """
+    old = parse_document(original) if original is not None else ET.fromstring("<esdeDocument><gameList /></esdeDocument>")
+    new = parse_document(prepared)
+    root = str(rom_root or "").rstrip("/\\") + "/" + system
+    def games(document, merge=False):
+        grouped = {}
+        for node in document.find("gameList").findall("game"):
+            file = canonical_reference(node.findtext("path", ""), root, actual)
+            if not file:
+                raise DeploymentError("Game path is outside the sealed ROM root")
+            relative_path(file)
+            grouped.setdefault(file, []).append(node)
+        values = {}
+        for file, nodes in grouped.items():
+            if len(nodes) > 1 and not merge:
+                raise DeploymentError("Prepared output still has duplicate game identities")
+            node = merged_game(nodes, file)[0] if merge else nodes[0]
+            values[file] = (node, xml_fields(node))
+        return values
+    before, after = games(old, True), games(new)
+    if set(before) - set(after):
+        raise DeploymentError("Deployment cannot drop original game or history records")
+    # Preserve non-game nodes, including alternativeEmulator and folder records.
+    def side_nodes(document):
+        values = []
+        for node in document:
+            if node.tag == "gameList":
+                values.extend(xml_node_value(child) for child in node if child.tag != "game")
+            else:
+                values.append(xml_node_value(node))
+        return values
+    if side_nodes(old) != side_nodes(new):
+        raise DeploymentError("Unrelated XML records cannot change during game deployment")
+    changes = []
+    for file, (node, fields) in after.items():
+        previous_node, previous = before.get(file, (None, {}))
+        if previous_node is not None and previous_node.attrib != node.attrib:
+            raise DeploymentError("Game XML attributes cannot change without an explicit supported identity mapping")
+        delta = {name: fields.get(name, "") for name in set(previous) | set(fields) if name != "path" and fields.get(name, "") != previous.get(name, "")}
+        if any(name in PROTECTED_FIELDS for name in delta):
+            raise DeploymentError("Prepared XML changed protected gameplay history/settings")
+        if any(name not in METADATA_FIELDS for name in delta):
+            raise DeploymentError("Unknown/media XML fields cannot be altered without supported identity lineage")
+        if delta:
+            changes.append({"system": system, "file": file, "metadata": delta, "after": fields})
+        elif previous_node is None and set(fields) - {"path"}:
+            # A new record with copied fields still requires identity approval.
+            changes.append({"system": system, "file": file, "metadata": {name: value for name, value in fields.items() if name != "path"}, "after": fields})
+    return changes
+
+
+def rom_fingerprint(target_config, target, system, file):
+    root = target_config.get("rom_root")
+    if not root:
+        raise DeploymentError("Changed game metadata/media requires an explicit --rom-root")
+    relative_path(system + "/" + file)
+    if target_config["type"] == "local":
+        root = Path(root).resolve()
+        path = root
+        for part in (system + "/" + file).split("/"):
+            path /= part
+            if path.is_symlink():
+                raise DeploymentError("ROM identity path or parent cannot be a symlink")
+        if not path.is_file() or not path.resolve().is_relative_to(root):
+            raise DeploymentError("Identity ROM is absent from the explicit target library")
+        return identity_api().fingerprint_file(path)
+    # Only read the exact ROM from the already selected serial. Never copy ROMs
+    # into the run directory or infer a different device/library.
+    path = root + "/" + system + "/" + file
+    parts = " ".join(shlex.quote(part) for part in (system + "/" + file).split("/"))
+    check = "set -eu; test ! -L " + shlex.quote(root) + "; test -d " + shlex.quote(root) + "; test \"$(realpath " + shlex.quote(root) + ")\" = " + shlex.quote(root) + "; p=" + shlex.quote(root) + "; for part in " + parts + '; do p="$p/$part"; test ! -L "$p" || exit 31; done; '
+    # Hashes returned by Android are recomputed from the target, not copied from
+    # the candidate report. sha256+size is enough to detect a stale ROM receipt.
+    quoted = shlex.quote(path)
+    check += "test -f " + quoted + "; test \"$(realpath " + quoted + ")\" = " + quoted + "; before=$(stat -c '%d:%i:%s:%Y:%y' " + quoted + "); digest=$(sha256sum " + quoted + "); size=$(wc -c < " + quoted + "); after=$(stat -c '%d:%i:%s:%Y:%y' " + quoted + "); test \"$before\" = \"$after\"; printf '%s\\n%s\\n%s\\n%s\\n' \"$before\" \"${digest%% *}\" \"$size\" \"$after\""
+    result = target.adb.shell_bytes(check).decode("ascii").splitlines()
+    if len(result) != 4 or result[0] != result[3] or not re.fullmatch(r"[0-9a-f]{64}", result[1]) or not result[2].strip().isdigit() or result[0].split(":", 3)[2] != result[2].strip():
+        raise DeploymentError("Selected Android ROM fingerprint could not be read")
+    return {"sha256": result[1], "size": int(result[2])}
+
+
+def rom_inventory(target_config, target, system):
+    """Actual platform files, used to reject a media stem shared by two ROMs."""
+    if not target_config.get("rom_root"):
+        return None
+    from esde_core import extension_map, walk_files
+    extensions = extension_map().get(system.casefold())
+    if not extensions:
+        raise DeploymentError("Identity deployment requires a known explicit platform extension set")
+    root = str(target_config["rom_root"]).replace("\\", "/").rstrip("/") + "/" + system
+    if target_config["type"] == "local":
+        root = Path(root)
+        return sorted(path.relative_to(root).as_posix() for path in walk_files(root) if path.suffix.casefold() in extensions)
+    result = []
+    for entry in target.adb.inventory(root):
+        path = entry.get("path", "")
+        if not path.startswith(root + "/"):
+            raise DeploymentError("Android ROM inventory escaped the sealed platform root")
+        file = path[len(root) + 1:]
+        relative_path(file)
+        if PurePosixPath(file).suffix.casefold() in extensions:
+            result.append(file)
+    return sorted(set(result))
+
+
+def build_identity_gate(run, plan, target, catalog_path=None, key_path=None):
+    """Authorize every changed game and each exact media file before any write."""
+    changes, media_files, inventories = [], [], {}
+    for item in plan["files"]:
+        if item["scope"] != "esde" or item["original"]["sha256"] == item["desired_sha256"]:
+            continue
+        if item["relative"].startswith("gamelists/"):
+            original = (Path(run) / item["backup"]).read_bytes() if item["original"]["exists"] else None
+            system = item["relative"].split("/")[1]
+            if system not in inventories:
+                inventories[system] = rom_inventory(plan["target"], target, system)
+            actual = inventories[system]
+            changes.extend(xml_changes(original, Path(item["local"]).read_bytes(), system, plan["target"].get("rom_root"), actual))
+        else:
+            media_files.append(item)
+    if not changes and not media_files:
+        return {"schema_version": 1, "status": "pass", "mode": "structure_or_theme_only", "games": [], "media": [], "key_path": str(Path(key_path).resolve()) if key_path else None}
+    if not catalog_path:
+        raise DeploymentError("Changed game metadata/media requires a signed identity catalog; name similarity and operator notes do not authorize writes")
+    catalog_path = Path(catalog_path).resolve()
+    catalog_hash = file_hash(catalog_path)
+    entries = catalog_entries(load_json(catalog_path))
+    requested = {(change["system"], change["file"]): change for change in changes}
+    bindings = []
+    for item in media_files:
+        _, system, kind, *suffix = item["relative"].split("/")
+        stem = str(PurePosixPath("/".join(suffix)).with_suffix(""))
+        if system not in inventories:
+            inventories[system] = rom_inventory(plan["target"], target, system)
+        matching_roms = [file for file in (inventories[system] or []) if str(PurePosixPath(file).with_suffix("")).casefold() == stem.casefold()]
+        if len(matching_roms) != 1:
+            raise DeploymentError("Media stem is absent or shared by different actual ROM files; resolve it before writing: " + item["relative"])
+        matches = [(key, entry) for key, entry in entries.items() if key[0] == system and str(PurePosixPath(key[1]).with_suffix("")).casefold() == stem.casefold()]
+        if len(matches) != 1:
+            raise DeploymentError("Media target does not unambiguously match one signed ROM stem: " + item["relative"])
+        key, entry = matches[0]
+        if key[1] != matching_roms[0]:
+            raise DeploymentError("Signed media ROM differs from the actual inventory file")
+        payload = entry["receipt"].get("payload", {})
+        candidates = [candidate for candidate in payload.get("media", []) if candidate.get("type", candidate.get("kind")) == kind and candidate.get("relative") == item["relative"].removeprefix("downloaded_media/") and candidate.get("sha256") == item["desired_sha256"] and candidate.get("size") == item["size"]]
+        if len(candidates) != 1:
+            raise DeploymentError("Media bytes/kind/target lack matching signed download lineage: " + item["relative"])
+        bindings.append({"system": key[0], "file": key[1], "relative": item["relative"], "type": kind, "sha256": item["desired_sha256"], "size": item["size"]})
+        requested.setdefault(key, {"system": key[0], "file": key[1], "metadata": {}, "after": {}})
+    games = []
+    for key, change in requested.items():
+        entry = entries.get(key)
+        if entry is None:
+            raise DeploymentError("Changed metadata has no signed ROM identity: " + ":".join(key))
+        payload = entry["receipt"].get("payload", {})
+        approved = payload.get("metadata", {})
+        if any(name not in approved or (approved[name] or "") != value for name, value in change["metadata"].items()):
+            raise DeploymentError("Prepared game facts differ from the approved identity receipt: " + ":".join(key))
+        fingerprint = rom_fingerprint(plan["target"], target, *key)
+        try:
+            verified = identity_api().verify_receipt(entry["receipt"], system=key[0], file=key[1], rom_fingerprint=fingerprint, metadata=approved, media=payload.get("media", []), key_path=key_path)
+        except (ValueError, OSError) as error:
+            raise DeploymentError("Identity verification blocked " + ":".join(key) + ": " + str(error)) from error
+        games.append({"system": key[0], "file": key[1], "rom_fingerprint": fingerprint, "metadata": change["metadata"], "receipt_sha256": sha256(json.dumps(entry["receipt"], sort_keys=True, ensure_ascii=False).encode("utf-8"))})
+    return {"schema_version": 1, "status": "pass", "mode": "signed_identity", "catalog": str(catalog_path), "catalog_sha256": catalog_hash, "key_path": str(Path(key_path).resolve()) if key_path else None, "games": games, "media": bindings}
+
+
+def recheck_identity_gate(run, plan, target):
+    gate = plan.get("identity_gate")
+    if not isinstance(gate, dict) or gate.get("status") != "pass":
+        raise DeploymentError("This deployment plan has no machine identity gate; replan with signed identity evidence")
+    catalog = gate.get("catalog")
+    if catalog and (not Path(catalog).is_file() or file_hash(catalog) != gate.get("catalog_sha256")):
+        raise DeploymentError("Frozen identity catalog changed or disappeared after planning")
+    checked = build_identity_gate(run, plan, target, catalog, gate.get("key_path"))
+    if checked != gate:
+        raise DeploymentError("Identity coverage or actual ROM fingerprint changed after planning")
+    return checked
+
+
+def install_identity_commit_guard(plan, target):
+    def check(items):
+        selected = set()
+        inventory_cache = {}
+        for item in items:
+            if item["scope"] != "esde":
+                continue
+            if item["relative"].startswith("gamelists/"):
+                system = item["relative"].split("/")[1]
+                selected.update((game["system"], game["file"]) for game in plan["identity_gate"]["games"] if game["system"] == system)
+            else:
+                for binding in plan["identity_gate"]["media"]:
+                    if binding["relative"] != item["relative"]:
+                        continue
+                    system = binding["system"]
+                    if system not in inventory_cache:
+                        inventory_cache[system] = rom_inventory(plan["target"], target, system)
+                    stem = str(PurePosixPath(binding["file"]).with_suffix(""))
+                    matches = [file for file in inventory_cache[system] if str(PurePosixPath(file).with_suffix("")).casefold() == stem.casefold()]
+                    if matches != [binding["file"]]:
+                        raise DeploymentError("ROM inventory now has an ambiguous or missing media stem; no media will be committed")
+                    selected.add((system, binding["file"]))
+        for game in plan["identity_gate"]["games"]:
+            key = (game["system"], game["file"])
+            if key in selected and rom_fingerprint(plan["target"], target, *key) != game["rom_fingerprint"]:
+                raise DeploymentError("ROM changed immediately before a game write; no further targets will be installed")
+    target.identity_before_commit = check
 
 
 def file_hash(path):
@@ -74,6 +342,8 @@ def validate_relative(value, scope="esde"):
     if scope == "theme":
         if any(part.startswith(".") for part in parts) or PurePosixPath(value).suffix.casefold() not in {".xml", ".json", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg", ".mp4", ".webm", ".ttf", ".otf", ".woff", ".woff2"}:
             raise DeploymentError("Theme manifests permit only explicit theme XML/data, image, video and font files")
+        if parts[-1].casefold() == "gamelist.xml" or any(part.casefold() in {"gamelists", "downloaded_media"} for part in parts):
+            raise DeploymentError("Game metadata/media destinations cannot be classified as theme files")
     elif scope == "esde":
         gamelist = len(parts) == 3 and parts[0] == "gamelists" and parts[2] == "gamelist.xml"
         media = len(parts) >= 4 and parts[0] == "downloaded_media" and parts[2] in CORE_MEDIA
@@ -99,6 +369,22 @@ def backup_path(run, relative):
     except ValueError as error:
         raise DeploymentError("Original backup resolves outside its run") from error
     return path
+
+
+def guard_theme_destination(target, target_config, item):
+    if item["scope"] != "theme":
+        return
+    path = str(target.path(item)).replace("\\", "/").rstrip("/")
+    parts = path.split("/")
+    if any(part.casefold() in {"gamelists", "downloaded_media"} for part in parts) or parts[-1].casefold() == "gamelist.xml":
+        raise DeploymentError("Theme destination crosses a game metadata/media directory")
+    base = str(target_config["roots"]["esde"]).replace("\\", "/").rstrip("/")
+    if target_config["type"] == "local":
+        path, base = path.casefold(), base.casefold()
+    for name in ("gamelists", "downloaded_media"):
+        forbidden = base + "/" + name
+        if path == forbidden or path.startswith(forbidden + "/"):
+            raise DeploymentError("Theme scope cannot bypass game identity in a managed directory")
 
 
 class LocalTarget:
@@ -157,6 +443,8 @@ class LocalTarget:
                 os.fsync(output.fileno())
             if file_hash(temporary) != expected_source:
                 raise DeploymentError("Staged source hash changed during transfer")
+            if hasattr(self, "identity_before_commit"):
+                self.identity_before_commit([item])
             if self.describe(item)["sha256"] != expected_current:
                 raise DeploymentError("Target changed during transfer; prepared file was not installed")
             if item["original"].get("mode") is not None:
@@ -354,6 +642,8 @@ class AndroidTarget:
             raise AdbError("Android binary transfer interrupted; reconnect and resume") from error
         finally:
             deadline.cancel()
+        if hasattr(self, "identity_before_commit"):
+            self.identity_before_commit([item])
         script = "set -eu; (" + self._safe_path_script(item) + ") || exit 31; " + self._current_guard(item, expected_current) + '; test "$(sha256sum ' + shlex.quote(temporary) + ' | cut -d " " -f 1)" = ' + shlex.quote(expected_source) + "; mv " + shlex.quote(temporary) + " " + shlex.quote(path)
         self.adb.shell_bytes(script)
 
@@ -393,6 +683,8 @@ class AndroidTarget:
                     raise AdbError("Android batch transfer interrupted; reconnect and resume") from error
                 finally:
                     deadline.cancel()
+                if hasattr(self, "identity_before_commit"):
+                    self.identity_before_commit([entry[0] for entry in staged])
                 # No target is replaced until *all* staged files and all target
                 # preconditions pass. Same-directory staging keeps mv atomic.
                 commit = ["set -eu"]
@@ -449,7 +741,18 @@ def create_target(target, adb_override=None):
     if target["type"] == "local":
         return LocalTarget(target["roots"])
     if target["type"] == "android":
-        return AndroidTarget(target["roots"], adb_override or target.get("adb", "adb"), target["serial"], target.get("esde_package", "org.es_de.frontend"))
+        from adb_runtime import resolve_adb, AdbResolutionError
+        try:
+            executable = resolve_adb(adb_override or target.get("adb"))
+        except AdbResolutionError as error:
+            raise DeploymentError(str(error)) from error
+        result = AndroidTarget(target["roots"], executable, target["serial"], target.get("esde_package", "org.es_de.frontend"))
+        if target.get("canonical_roots"):
+            for root in result.roots.values():
+                actual = result.adb.shell_bytes("test -d " + shlex.quote(root) + " && realpath " + shlex.quote(root)).decode("utf-8").strip()
+                if actual != root:
+                    raise DeploymentError("A sealed Android root changed its physical location; no writes are permitted")
+        return result
     raise DeploymentError("Unsupported target type in sealed plan")
 
 
@@ -465,9 +768,10 @@ def seal_plan(run, plan):
     data = (json.dumps(plan, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     path.write_bytes(data)
     (Path(run) / "deployment_plan.sha256").write_text(sha256(data) + "\n", encoding="ascii")
+    write_json(Path(run) / "deployment_plan.signature.json", identity_api().seal_payload({"sha256": sha256(data)}, kind="deployment_plan", key_path=plan.get("identity_gate", {}).get("key_path")))
 
 
-def load_plan(run):
+def load_plan(run, key_path=None):
     run = Path(run).resolve()
     data = (run / "deployment_plan.json").read_bytes()
     expected = (run / "deployment_plan.sha256").read_text(encoding="ascii").strip()
@@ -476,6 +780,14 @@ def load_plan(run):
     plan = json.loads(data.decode("utf-8"))
     if plan.get("schema_version") != 1:
         raise DeploymentError("Unsupported deployment plan version")
+    try:
+        bound = identity_api().verify_payload(load_json(run / "deployment_plan.signature.json"), kind="deployment_plan", key_path=key_path)
+    except (ValueError, OSError) as error:
+        raise DeploymentError("Deployment plan signature is missing or invalid; replan before applying") from error
+    if bound != {"sha256": sha256(data)}:
+        raise DeploymentError("Deployment plan does not match its private-key signature")
+    if plan.get("identity_gate", {}).get("key_path") != (str(Path(key_path).resolve()) if key_path else None):
+        raise DeploymentError("Use the same explicitly configured identity key as planning; the plan cannot choose a trust key")
     seen = set()
     for item in plan["files"]:
         validate_relative(item["relative"], item["scope"])
@@ -518,11 +830,26 @@ def plan_command(args):
         if args.theme_root:
             roots["theme"] = str(Path(args.theme_root).resolve()) if args.target == "local" else remote_root(args.theme_root)
         target_config = {"type": args.target, "roots": roots}
+        if args.rom_root:
+            target_config["rom_root"] = str(Path(args.rom_root).resolve()) if args.target == "local" else remote_root(args.rom_root)
         if args.target == "android":
             if not args.serial:
                 raise DeploymentError("Android plans require explicit --serial")
             target_config.update({"serial": args.serial, "adb": args.adb, "esde_package": args.esde_package})
         target = create_target(target_config)
+        if args.target == "android" and hasattr(target, "adb"):
+            target_config["adb"] = target.adb.executable
+            for scope, literal in list(target_config["roots"].items()):
+                resolved = target.adb.shell_bytes("test -d " + shlex.quote(literal) + " && realpath " + shlex.quote(literal)).decode("utf-8").strip()
+                target_config["roots"][scope] = remote_root(resolved)
+                target.roots[scope] = target_config["roots"][scope]
+            target_config["canonical_roots"] = True
+            if target_config.get("rom_root"):
+                # Android exposes /sdcard as a standard alias. Resolve only the
+                # caller's explicit root once and freeze its actual boundary.
+                literal = target_config["rom_root"]
+                resolved = target.adb.shell_bytes("test -d " + shlex.quote(literal) + " && realpath " + shlex.quote(literal)).decode("utf-8").strip()
+                target_config["rom_root"] = remote_root(resolved)
         if args.target == "android":
             reporter.update("running", "Authorized Android target selected", connection={"status": "connected", "serial": args.serial})
         files, seen, destinations = [], set(), set()
@@ -545,7 +872,10 @@ def plan_command(args):
                 raise DeploymentError("Source must be a nonzero regular file: " + str(source))
             if relative.startswith("gamelists/") and scope == "esde":
                 parse_document(source.read_bytes())
+            if scope == "theme" and source.suffix.casefold() == ".xml" and re.search(rb"<\s*gameList(?:\s|>)", source.read_bytes(), re.I):
+                raise DeploymentError("ES-DE gameList content cannot be written through independent theme scope")
             item = {"scope": scope, "relative": relative, "local": str(source), "desired_sha256": file_hash(source), "size": source.stat().st_size}
+            guard_theme_destination(target, target_config, item)
             destination = str(target.path(item))
             destination = os.path.normcase(destination) if args.target == "local" else destination
             if destination in destinations:
@@ -583,6 +913,17 @@ def plan_command(args):
             if index % 50 == 0 or index == len(files):
                 reporter.update("running", "Sealed original baselines: " + str(index) + "/" + str(len(files)), completed=index, total=len(files))
         plan = {"schema_version": 1, "created_at": now(), "source_manifest": str(manifest_path), "target": target_config, "files": files}
+        catalog = args.identity_catalog or (manifest.get("identity_catalog") if isinstance(manifest, dict) else None)
+        if catalog and not Path(catalog).is_absolute():
+            catalog = str((manifest_path.parent / catalog).resolve())
+        key = args.identity_key
+        configured_key = Path(key) if key else identity_api().default_key_path()
+        if configured_key.resolve().is_relative_to(run):
+            raise DeploymentError("Identity key must be outside the mutable run directory")
+        plan["identity_gate"] = build_identity_gate(run, plan, target, catalog, key)
+        # A structure-only plan also needs an immutable authorization boundary:
+        # otherwise editing both JSON and its neighboring SHA could remove gates.
+        plan["identity_gate"]["key_path"] = str(Path(key).resolve()) if key else None
         seal_plan(run, plan)
         save_state(run, {"schema_version": 1, "status": "planned", "counts": {"apply": 0, "rollback": 0, "verify": 0}, "planned_files": len(files), "checkpoint_store": "deployment_journal.sqlite"})
         reporter.update("running", "Deployment plan prepared; original backups and target hashes sealed", completed=len(files), total=len(files), phase_status="done")
@@ -597,7 +938,7 @@ def action_command(args):
     state = None
     try:
         write_json(run / "deployment_verification.json", {"schema_version": 1, "checked_at": now(), "status": "pending", "checked": 0, "files": [], "visual_qa": "pending", "media_decode_qa": "pending"})
-        plan = load_plan(run)
+        plan = load_plan(run, args.identity_key)
         state = load_json(run / "deployment_state.json")
         state.setdefault("counts", {})[args.command] = 0
         state["active_action"] = args.command
@@ -608,6 +949,9 @@ def action_command(args):
         if plan["target"]["type"] == "android":
             reporter.update("running", "Authorized sealed Android target selected", connection={"status": "connected", "serial": plan["target"]["serial"]})
         files = plan["files"]
+        identity_gate = recheck_identity_gate(run, plan, target) if args.command != "rollback" else None
+        if args.command == "apply":
+            install_identity_commit_guard(plan, target)
         reporter.update("running", "Checking sealed backups and current target hashes", completed=0, total=len(files))
         # Validate every item before mutating any. A later user's changed file
         # blocks both installation and rollback instead of being overwritten.
@@ -692,7 +1036,10 @@ def action_command(args):
             journal.close()
         if args.command == "verify":
             matched = all(result["matches"] for result in results)
-            write_json(run / "deployment_verification.json", {"schema_version": 1, "checked_at": now(), "status": "pass" if matched else "needs_work", "checked": len(results), "files": results, "visual_qa": "pending", "media_decode_qa": "pending"})
+            verification = {"schema_version": 1, "checked_at": now(), "status": "pass" if matched else "needs_work", "checked": len(results), "files": results, "visual_qa": "pending", "media_decode_qa": "pending", "identity_gate": identity_gate, "plan_sha256": file_hash(run / "deployment_plan.json")}
+            if matched:
+                verification["identity_verification"] = identity_api().seal_payload({"plan_sha256": verification["plan_sha256"], "identity_gate": identity_gate, "files": results}, kind="deployment_verification", key_path=plan["identity_gate"].get("key_path"))
+            write_json(run / "deployment_verification.json", verification)
             if not matched:
                 raise DeploymentError("One or more planned files are not installed; apply or resume before verification")
             state["status"] = "awaiting_visual_qa"
@@ -717,8 +1064,11 @@ def build_parser():
     plan.add_argument("--manifest", required=True)
     plan.add_argument("--target", choices=("local", "android"), required=True)
     plan.add_argument("--esde-root", required=True)
+    plan.add_argument("--rom-root", help="Explicit ROM library root; changed game metadata/media requires freshly read ROM fingerprints")
+    plan.add_argument("--identity-catalog", help="Signed provider/ROM identity receipts authorizing the changed facts and exact media bytes")
+    plan.add_argument("--identity-key", help="Optional private test/configuration key outside the mutable run; never read from the catalog")
     plan.add_argument("--theme-root", help="Optional explicit writable theme root, used only by scope=theme entries")
-    plan.add_argument("--adb", default=os.environ.get("ADB", "adb"))
+    plan.add_argument("--adb", help="Explicit ADB executable; otherwise resolve configured/PATH/Android SDK tools and validate adb version")
     plan.add_argument("--serial", help="Explicit Android serial; authorization is checked")
     plan.add_argument("--esde-package", default="org.es_de.frontend", help="Package whose running ES-DE process blocks Android writes")
     plan.add_argument("--out", required=True, help="Durable workbench run directory")
@@ -726,6 +1076,7 @@ def build_parser():
         action = commands.add_parser(name)
         action.add_argument("--run", required=True)
         action.add_argument("--adb", help="Override ADB executable; sealed device serial and target roots stay fixed")
+        action.add_argument("--identity-key", help="Same explicitly configured private key used for planning; omitted uses the private user configuration")
     return parser
 
 

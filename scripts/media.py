@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and prepare bounded local ES-DE media; identity requires operator evidence."""
+"""Validate and stage ES-DE media; deploying it requires signed exact-ROM lineage."""
 from __future__ import annotations
 
 import argparse
@@ -131,7 +131,7 @@ def check_files(files, *, run=None, ffmpeg=None, ffprobe=None, limits=None):
                 if kind == "video" and report["technical_verified"]:
                     decode_video(path, ffmpeg)
                     report["verification"] = "ffprobe_and_ffmpeg_frame_decode"
-                report.update({"path": str(path), "status": "pass" if report["technical_verified"] else "fail", "identity_confirmed": bool(item.get("identity_confirmed", False)), "identity_note": item.get("identity_note", ""), "visual_review_required": True})
+                report.update({"path": str(path), "status": "pass" if report["technical_verified"] else "fail", "identity_confirmed": False, "identity_note": item.get("identity_note", ""), "review_annotation": {"operator_confirmed": bool(item.get("identity_confirmed", False)), "authorizes_deployment": False}, "visual_review_required": True})
             except (Blocked, ValueError, OSError, subprocess.SubprocessError) as exc:
                 report = {"path": str(path), "status": "blocked" if isinstance(exc, Blocked) else "fail", "error": redact(str(exc)), "technical_verified": False, "identity_confirmed": False, "visual_review_required": True}
         reports.append(report)
@@ -242,9 +242,15 @@ def preview_frame(image_path, title, kind, out, font=None):
 def publish(run, job_id, media_type, report, identity_confirmed=False, identity_note="", video_kind=""):
     if identity_confirmed and not identity_note.strip():
         raise ValueError("Identity confirmation requires an evidence note")
-    report["identity"] = {"confirmed": bool(identity_confirmed), "note": identity_note, "confirmed_at": now() if identity_confirmed else None, "method": "operator_review" if identity_confirmed else "unreviewed"}
+    report["identity"] = {"confirmed": False, "note": identity_note, "confirmed_at": None, "method": "requires_signed_rom_and_source_receipt"}
+    report["review_annotation"] = {"operator_confirmed": bool(identity_confirmed), "note": identity_note, "reviewed_at": now() if identity_confirmed else None, "authorizes_deployment": False}
+    report["deployment_authorized"] = False
+    report["identity_gate"] = "pending_signed_provider_rom_and_media_receipt"
+    if video_kind == "gameplay_video":
+        report["review_annotation"]["video_kind"] = video_kind
+        video_kind = "unverified_video"
     report["video_kind"] = video_kind
-    report["status"] = "verified" if report.get("technical_verified") and identity_confirmed else "needs_identity_review" if report.get("technical_verified") else "error"
+    report["status"] = "needs_identity_review" if report.get("technical_verified") else "error"
     if run:
         init_run(run)
         if job_id:
@@ -268,7 +274,7 @@ def publish(run, job_id, media_type, report, identity_confirmed=False, identity_
             if report.get("path") and Path(report["path"]).is_file():
                 from workbench_media import register_media
                 register_media(run, job_id, media_type, report["path"], sha256=report.get("sha256"), origin="prepared_media")
-        emit_update(run, phase="media", status="running" if report.get("technical_verified") else "error", phase_status="done" if report.get("technical_verified") else "error", completed=1, total=1, message="Media technically checked; identity " + ("confirmed" if identity_confirmed else "requires review"))
+        emit_update(run, phase="media", status="running" if report.get("technical_verified") else "error", phase_status="done" if report.get("technical_verified") else "error", completed=1, total=1, message="Media technically checked; signed ROM identity and trusted source bytes still required before deployment")
     return redact(report)
 
 
@@ -290,8 +296,8 @@ def main(argv=None):
         cli.add_argument("--run")
         cli.add_argument("--job-id")
         cli.add_argument("--media-type", choices=MEDIA_TYPES)
-        cli.add_argument("--identity-confirmed", action="store_true")
-        cli.add_argument("--identity-note", default="")
+        cli.add_argument("--identity-confirmed", action="store_true", help="Record a visual-review annotation only; cannot authorize writes or confirm ROM identity")
+        cli.add_argument("--identity-note", default="", help="Operator review note; deployment independently requires a signed identity catalog")
         cli.add_argument("--max-duration", type=float, default=30)
         cli.add_argument("--max-bytes", type=int, default=6000000)
         cli.add_argument("--max-height", type=int, default=720)
