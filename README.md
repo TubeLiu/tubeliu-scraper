@@ -23,7 +23,7 @@
 
 也可以只处理某个平台、检查已有资源或修复 gamelist。AI 会确认设备和处理范围，完成准备并打开工作台。工作台链接自动生成，无需申请访问令牌。
 
-已内置 Windows（Intel/AMD 64 位）和 macOS（Intel/Apple 芯片）版 ADB，AI 自动选择并检查，通常无需另外下载或配置路径。平板或掌机仍需开启 USB 调试，并允许这台电脑连接。
+已内置 Windows（Intel/AMD 64 位）和 macOS（Intel/Apple 芯片）版 ADB 及必要依赖，AI 自动选择并检查。用户无需预先安装 ADB、配置 PATH，也无需首次运行时下载 ADB。平板或掌机仍需开启 USB 调试，并允许这台电脑连接。
 
 ## ScreenScraper 账号
 

@@ -18,7 +18,7 @@ android-tools notices and full-tool SBOMs are excluded.
 
 ## Necessary source and relinking material
 
-[ADB 36.0.1 source and dependency pack](https://github.com/TubeLiu/tubeliu-scraper/releases/download/v0.2.1/adb-36.0.1-minimal-source.zip)
+[ADB 36.0.1 source and dependency pack](https://github.com/TubeLiu/tubeliu-scraper/releases/download/v0.2.2/adb-36.0.1-minimal-source.zip)
 is available at the same release as the skill binary package, with equivalent
 download access under LGPL-2.1 sections 6(a) and 6(d). It contains the ADB
 application source, linked libraries, generation inputs, fixed dependency archives,
@@ -46,11 +46,16 @@ Downloaded inputs were checked against upstream release digests or pinned wrap
 hashes. All shipped ADB files are checked against the local manifest before use.
 These checks provide integrity, not a vendor signing identity.
 
-Windows x86_64 `adb version` succeeded: `1.0.41`,
-`36.0.1-android-tools-static`. No device command was run for that check.
+The exact shipped binaries passed runtime checks on Windows x86_64, macOS
+x86_64 and macOS arm64: `adb version`, isolated server startup, status and
+shutdown. Each test used an empty PATH and no Android SDK configuration, with
+an isolated server port; no preinstalled ADB or existing ADB server was used.
+The reported version is `1.0.41`, `36.0.1-android-tools-static`.
 The macOS universal binary contains x86_64 (minimum macOS 10.15) and arm64
-(minimum macOS 11.0) slices with system dynamic dependencies. It was checked
-statically on Windows; execution and device use on a Mac were not tested.
+(minimum macOS 11.0) slices with system dynamic dependencies.
+[Native Mac runtime checks](https://github.com/TubeLiu/tubeliu-scraper/actions/runs/37204988385)
+executed both architectures. These startup checks did not connect a physical
+Android ES-DE device and do not constitute end-to-end scraping validation.
 Do not bypass Gatekeeper or quarantine controls.
 
 Primary build references:

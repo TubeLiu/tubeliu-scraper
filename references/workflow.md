@@ -8,7 +8,7 @@
 
 Windows SDK 常见位置是 `%LOCALAPPDATA%/Android/Sdk/platform-tools/adb.exe`；macOS 是 `~/Library/Android/sdk/platform-tools/adb`。随包工具启动前核对清单中的文件 SHA，随后运行版本检查，快照与部署固定绝对路径。macOS 如被系统安全策略阻止，记录实际原因并使用用户已有的可用 ADB；不自动移除 quarantine 或绕过安全检查。无任何可用工具时给出 [Google 官方 Platform-Tools](https://developer.android.com/tools/releases/platform-tools) 安装地址和 `--adb` 用法，本地库与工作台仍可运行。
 
-随包版本的具体支持范围、固定来源、许可和重建源码见 [assets/adb/NOTICE.md](../assets/adb/NOTICE.md) 与清单。Windows 为 x86_64，最低 Windows 10；macOS Intel 最低 10.15、Apple 芯片最低 11。未提供 Windows ARM64 原生版和 Linux 版时，检查本机明确可用的 ADB，不执行错误架构的文件。
+随包版本的具体支持范围、固定来源、许可和重建源码见 [assets/adb/NOTICE.md](../assets/adb/NOTICE.md) 与清单。Windows 为 x86_64，最低 Windows 10；macOS Intel 最低 10.15、Apple 芯片最低 11。这三个架构已在空 PATH、无 Android SDK 的环境中实际通过随包 ADB 的版本、独立服务启动和停止检查；支持范围内不要求用户预先安装或运行时下载 ADB。未提供 Windows ARM64 原生版和 Linux 版时，检查本机明确可用的 ADB，不执行错误架构的文件。
 
 ```
 PY SKILL/scripts/esde.py devices --adb ADB

@@ -34,13 +34,13 @@
         },
         {
           "path": "NOTICE.md",
-          "size": 3855,
-          "sha256": "99f694843dcbf6e7311263cfe8f1d56f88c2c0fa8362e5c848eda5dc060f61e9"
+          "size": 4267,
+          "sha256": "945e590da104a19a710f7ebc34c427eaab7f90af1a6abfd0dd9c2e8ffe3e24ea"
         },
         {
           "path": "REBUILD.md",
           "size": 6117,
-          "sha256": "eba3317c781b62c2805a8d487dfc60cde04822c339ed57313dae4dfad953d808"
+          "sha256": "0d32b2ba894fdf6099250cd34b6e2411de35626a3d5ee064533eee206b31e787"
         },
         {
           "path": "licenses/license-index.json",
@@ -301,7 +301,10 @@
       "validation": {
         "architecture_static": true,
         "version_executed": true,
-        "device_tested": false
+        "device_tested": false,
+        "empty_path_no_sdk": true,
+        "isolated_server_start_status_stop": true,
+        "existing_server_used": false
       },
       "minimum_windows": "10"
     },
@@ -320,13 +323,13 @@
         },
         {
           "path": "NOTICE.md",
-          "size": 3855,
-          "sha256": "99f694843dcbf6e7311263cfe8f1d56f88c2c0fa8362e5c848eda5dc060f61e9"
+          "size": 4267,
+          "sha256": "945e590da104a19a710f7ebc34c427eaab7f90af1a6abfd0dd9c2e8ffe3e24ea"
         },
         {
           "path": "REBUILD.md",
           "size": 6117,
-          "sha256": "eba3317c781b62c2805a8d487dfc60cde04822c339ed57313dae4dfad953d808"
+          "sha256": "0d32b2ba894fdf6099250cd34b6e2411de35626a3d5ee064533eee206b31e787"
         },
         {
           "path": "licenses/license-index.json",
@@ -586,8 +589,16 @@
       },
       "validation": {
         "architecture_static": true,
-        "version_executed": false,
-        "device_tested": false
+        "version_executed": true,
+        "device_tested": false,
+        "empty_path_no_sdk": true,
+        "isolated_server_start_status_stop": true,
+        "existing_server_used": false,
+        "native_execution_architectures": [
+          "x86_64",
+          "arm64"
+        ],
+        "evidence_url": "https://github.com/TubeLiu/tubeliu-scraper/actions/runs/37204988385"
       },
       "minimum_macos": {
         "x86_64": "10.15",
@@ -598,7 +609,7 @@
   "notice": "NOTICE.md",
   "corresponding_source": {
     "name": "adb-36.0.1-minimal-source.zip",
-    "url": "https://github.com/TubeLiu/tubeliu-scraper/releases/download/v0.2.1/adb-36.0.1-minimal-source.zip",
+    "url": "https://github.com/TubeLiu/tubeliu-scraper/releases/download/v0.2.2/adb-36.0.1-minimal-source.zip",
     "size": 24597904,
     "sha256": "7511fdccb0bf88d2a69537792f8297621e7aa70e7a57bbd4d15923bf344830d1",
     "source_archive_verified_sha256": "6aff0c12aa8d22f3621845fb2dd7e1fb874546761376f9791312c4939cab38e6",

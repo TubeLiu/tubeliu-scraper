@@ -13,7 +13,7 @@ description: 刮削、中文化和修复 ES-DE 游戏资料与媒体。触发词
 
 先用 `scripts/workbench.py init --run RUN --title TITLE` 建立任务，再用 `scripts/launch_workbench.py --runs RUNS` 启动工作台；需要同 Wi-Fi 访问时加 `--lan`。将程序实际返回的完整链接交给用户并打开预览，访问令牌由启动器自动生成。
 
-安卓设备先用 `scripts/adb_runtime.py` 检查 ADB，再用 `scripts/esde.py devices` 确认已授权的序列号及真实 ES-DE、ROM 根目录；多个设备不能按列表顺序选择。优先使用 skill 随包的对应 Windows/macOS 工具，用户明确指定的 `--adb` 或 `ADB` 环境变量优先。检查通过后固定完整路径；随包工具不可用时按 [references/workflow.md](references/workflow.md) 检查本机 SDK 或给出安装指引。用 `snapshot-android` 取得只读快照，本地库用 `audit`。
+安卓设备先用 `scripts/adb_runtime.py` 检查 ADB，再用 `scripts/esde.py devices` 确认已授权的序列号及真实 ES-DE、ROM 根目录；多个设备不能按列表顺序选择。支持的 Windows/macOS 平台已随包提供 ADB 及必要依赖，本机未安装 ADB 或 Android SDK 时直接使用随包工具，无需让用户先下载或配置 PATH。用户明确指定的 `--adb` 或 `ADB` 环境变量优先。检查通过后固定完整路径；随包工具不可用时按 [references/workflow.md](references/workflow.md) 检查本机 SDK 或给出安装指引。用 `snapshot-android` 取得只读快照，本地库用 `audit`。
 
 ## 配置资料来源
 

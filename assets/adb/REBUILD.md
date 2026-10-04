@@ -1,6 +1,6 @@
 # ADB 36.0.1 source and relinking pack
 
-Download the source pack from the same [v0.2.1 release](https://github.com/TubeLiu/tubeliu-scraper/releases/tag/v0.2.1) as the skill package: `adb-36.0.1-minimal-source.zip`.
+Download the source pack from the same [v0.2.2 release](https://github.com/TubeLiu/tubeliu-scraper/releases/tag/v0.2.2) as the skill package: `adb-36.0.1-minimal-source.zip`.
 
 This pack accompanies TubeLiu's Scraper's Windows x86_64 and macOS universal2
 ADB binaries. It contains the actual ADB application source, its linked library
