@@ -1,70 +1,61 @@
-# Bundled ADB: source, licenses and rebuilding
+# Bundled ADB: source and licenses
 
-This skill redistributes an unmodified open source rebuild of ADB from
-[meator/android-tools-static 36.0.1](https://github.com/meator/android-tools-static/releases/tag/36.0.1),
-source commit `cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127`.
-It is not Google's proprietary SDK archive or a Google-signed release.
-Only ADB and its two required Windows USB DLLs are bundled; fastboot and the
-other tools in the upstream binary archives are excluded.
+This skill includes byte-for-byte copies of the open source ADB rebuild from
+[android-tools-static 36.0.1](https://github.com/meator/android-tools-static/releases/tag/36.0.1),
+commit `cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127`.
+Only ADB and its required Windows USB DLLs are shipped. This is not Google's
+proprietary SDK archive or a Google-signed release.
 
-The source build's Apache-2.0 license does not replace its dependencies' licenses.
-The binaries include **libusb 1.0.29 under LGPL-2.1-or-later**, linked statically,
-and code under Apache-2.0, BSD, MIT, Zlib, OpenSSL/ISC and other permissive terms.
-Windows' GCC runtime libraries are distributed under GPLv3 with the GCC Runtime
-Library Exception. The retained MinGW notices are build-environment references;
-the upstream SBOM does not identify an exact MinGW runtime package version.
-LZ4 library code uses its BSD license; GPL notices for standalone utilities in the
-corresponding source are also retained, without claiming those utilities are in ADB.
+The binaries statically link **libusb 1.0.29, LGPL-2.1-or-later**. Their other
+components use Apache-2.0, BSD, MIT, Zlib, OpenSSL/ISC and related terms.
+Windows GCC runtime libraries use GPLv3 with the GCC Runtime Library Exception.
+The retained MinGW notices are build-environment references; the upstream evidence
+does not identify the exact MinGW runtime package version.
+Original notices are retained without edits under `licenses/`;
+[license-index.json](licenses/license-index.json) records their origins and hashes.
+The index covers ADB, its linked dependencies and their build inputs. Unrelated
+android-tools notices and full-tool SBOMs are excluded.
 
-Original license, copyright and notice texts are retained without edits under
-`licenses/upstream-source/` and `licenses/toolchain/`.
-[licenses/license-index.json](licenses/license-index.json) maps each text to its
-original source archive member or fixed upstream URL and its SHA256.
-The upstream SBOMs in `licenses/sbom/` are retained as build evidence; they do
-not replace the license texts or independently prove the absence of other code.
+## Necessary source and relinking material
 
-## Complete corresponding source
+[ADB 36.0.1 source and dependency pack](https://github.com/TubeLiu/tubeliu-scraper/releases/download/v0.2.1/adb-36.0.1-minimal-source.zip)
+is available at the same release as the skill binary package, with equivalent
+download access under LGPL-2.1 sections 6(a) and 6(d). It contains the ADB
+application source, linked libraries, generation inputs, fixed dependency archives,
+DLL source, licenses and instructions for rebuilding with modified libusb.
+It excludes unrelated tools, performance traces, test APKs and large unused test
+vectors. Required dependency archives retain their own build material and notices.
 
-The library source and the complete source work that uses it, with the original
-build files, overlays and patches, are provided with equivalent download access
-at the same project release as the skill binary package. This follows LGPL-2.1
-sections 6(a) and 6(d); it does not rely on a future written-offer promise:
-
-[ADB 36.0.1 complete source and dependency pack](https://github.com/TubeLiu/tubeliu-scraper/releases/download/v0.2.0/adb-36.0.1-corresponding-source.zip)
-
-The pack contains the upstream pre-patched source archive, all 21 additional
-fixed wrap source/overlay inputs, the Windows DLL source, original licenses,
-build evidence and instructions for rebuilding ADB with modified libusb.
-The original 407 MB archive alone omits most dependency sources and is therefore
-not our complete corresponding-source delivery.
-The exact source pack size and SHA256 are recorded in
-[bundle-manifest.json](bundle-manifest.json).
+The source pack is optional for normal skill installation. Its size and SHA256
+are recorded in [bundle-manifest.json](bundle-manifest.json).
+Build-control changes for the ADB-only scope are recorded in its patch and
+per-file manifest. Source implementation files are preserved from the fixed
+upstream version. Compiler toolchains and OS SDKs are not included.
+Source hashes and static build-input closure were checked; a new complete C++
+rebuild was not performed. See [REBUILD.md](REBUILD.md).
 
 You may modify this third-party software for your own use and reverse engineer
-it to debug those modifications, under its original license terms. Those rights
-are not restricted by this skill. See [REBUILD.md](REBUILD.md) and the LGPL text
-at [licenses/upstream-source/038-COPYING](licenses/upstream-source/038-COPYING).
-When redistributing these binaries, retain these notices and provide equivalent
-access to the complete corresponding source; forwarding only the skill ZIP
-without a source offer or access does not satisfy this distribution arrangement.
+it to debug those modifications. The skill does not restrict these license rights.
+When redistributing these binaries, retain the notices and provide equivalent
+access to this corresponding source. See the
+[LGPL text](licenses/upstream-source/038-COPYING).
 
 ## Verification and platform limits
 
-All downloaded archives were checked against their upstream release asset digest
-or the source build's pinned wrap SHA256. Bundled files are byte-for-byte copies
-and checked by `bundle-manifest.json` before use. Checksums provide reproducible
-integrity; they are not a substitute for a vendor code-signing identity.
+Downloaded inputs were checked against upstream release digests or pinned wrap
+hashes. All shipped ADB files are checked against the local manifest before use.
+These checks provide integrity, not a vendor signing identity.
 
-Windows x86_64 `adb version` was run successfully: `1.0.41`,
-`36.0.1-android-tools-static`. No device command was run for this check.
+Windows x86_64 `adb version` succeeded: `1.0.41`,
+`36.0.1-android-tools-static`. No device command was run for that check.
 The macOS universal binary contains x86_64 (minimum macOS 10.15) and arm64
-(minimum macOS 11.0) slices and only system dynamic dependencies. Its architecture
-was checked statically on Windows; a macOS execution or device test was not performed.
-Do not disable Gatekeeper or remove quarantine attributes to bypass a macOS block.
+(minimum macOS 11.0) slices with system dynamic dependencies. It was checked
+statically on Windows; execution and device use on a Mac were not tested.
+Do not bypass Gatekeeper or quarantine controls.
 
-Upstream primary references:
+Primary build references:
 
-- [Build and redistribution notes at the pinned commit](https://github.com/meator/android-tools-static/blob/cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127/license_considerations.md).
-- [Actual release build workflow](https://github.com/meator/android-tools-static/blob/cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127/.github/workflows/release.yml).
-- [Static dependency build configuration](https://github.com/meator/android-tools-static/blob/cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127/nativefiles/release_configuration.ini).
+- [Upstream redistribution notes](https://github.com/meator/android-tools-static/blob/cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127/license_considerations.md).
+- [Release build workflow](https://github.com/meator/android-tools-static/blob/cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127/.github/workflows/release.yml).
+- [Static dependency configuration](https://github.com/meator/android-tools-static/blob/cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127/nativefiles/release_configuration.ini).
 - [Windows USB DLL build](https://github.com/meator/AdbWinApi/releases/tag/36.0.1p3).

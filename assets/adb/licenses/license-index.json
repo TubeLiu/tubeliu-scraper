@@ -5,169 +5,49 @@
       "source_archive_member": "android-tools-static-36.0.1-src/LICENSE",
       "path": "licenses/upstream-source/001-LICENSE",
       "size": 11358,
-      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/libusb/NOTICE",
-      "path": "licenses/upstream-source/002-NOTICE",
-      "size": 26436,
-      "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/libusb/COPYING",
-      "path": "licenses/upstream-source/003-COPYING",
-      "size": 26436,
-      "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/logging/logcat/NOTICE",
-      "path": "licenses/upstream-source/004-NOTICE",
-      "size": 10695,
-      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
     },
     {
       "source_archive_member": "android-tools-static-36.0.1-src/vendor/logging/liblog/NOTICE",
       "path": "licenses/upstream-source/005-NOTICE",
       "size": 10695,
-      "sha256": "f09747e3bc87e0ec3bdea983b37e18eeda223e01e678f76418a8a731ed8f590f",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/logging/logwrapper/NOTICE",
-      "path": "licenses/upstream-source/006-NOTICE",
-      "size": 10695,
-      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/libnetutils/NOTICE",
-      "path": "licenses/upstream-source/007-NOTICE",
-      "size": 10695,
-      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/init/NOTICE",
-      "path": "licenses/upstream-source/008-NOTICE",
-      "size": 10695,
-      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
+      "sha256": "f09747e3bc87e0ec3bdea983b37e18eeda223e01e678f76418a8a731ed8f590f"
     },
     {
       "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/libcutils/NOTICE",
       "path": "licenses/upstream-source/009-NOTICE",
       "size": 10695,
-      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/libgrallocusage/NOTICE",
-      "path": "licenses/upstream-source/010-NOTICE",
-      "size": 10695,
-      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
+      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
     },
     {
       "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/libutils/NOTICE",
       "path": "licenses/upstream-source/011-NOTICE",
       "size": 10695,
-      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/toolbox/NOTICE",
-      "path": "licenses/upstream-source/012-NOTICE",
-      "size": 647,
-      "sha256": "18506019bb1f7624acda78bb7122784c74dc3551d137df51e485818dd06c4c55",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/fs_mgr/NOTICE",
-      "path": "licenses/upstream-source/013-NOTICE",
-      "size": 1075,
-      "sha256": "79f4e3e40e233ecf37271aec00da77235f6528054d057208460a33f44848b23a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/run-as/NOTICE",
-      "path": "licenses/upstream-source/014-NOTICE",
-      "size": 10695,
-      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/libsync/NOTICE",
-      "path": "licenses/upstream-source/015-NOTICE",
-      "size": 10695,
-      "sha256": "efcb3b0d1a6686c84546d85d1ad53ae01b0535443972c1f33eb248ae24b8357d",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/core/fastboot/LICENSE",
-      "path": "licenses/upstream-source/016-LICENSE",
-      "size": 1267,
-      "sha256": "1bc6c8aff995afb8905dce226367c3e564eb68e4969bfe491229b8b50f19ebe1",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
+      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
     },
     {
       "source_archive_member": "android-tools-static-36.0.1-src/vendor/adb/NOTICE",
       "path": "licenses/upstream-source/017-NOTICE",
       "size": 10695,
-      "sha256": "cf14d0774dd1e5f5ae0416edbc5c0de706c474e9402e3fe367e9103cd13891f7",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/fmtlib/NOTICE",
-      "path": "licenses/upstream-source/018-NOTICE",
-      "size": 1310,
-      "sha256": "560d39617dfb4b4e4088597291a070ed6c3a8d67668114ed475c673430c3e49a",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/vendor/fmtlib/LICENSE",
-      "path": "licenses/upstream-source/019-LICENSE",
-      "size": 1431,
-      "sha256": "07580f2a3b35709ce703d523f447b242f6dfec7582a8c0df102c7fa2849375f8",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
+      "sha256": "cf14d0774dd1e5f5ae0416edbc5c0de706c474e9402e3fe367e9103cd13891f7"
     },
     {
       "source_archive_member": "android-tools-static-36.0.1-src/vendor/libbase/NOTICE",
       "path": "licenses/upstream-source/020-NOTICE",
       "size": 12840,
-      "sha256": "e0afbb47be661ce2076d21a1d4dc02caa58b7c215ab7ff9d151b6724be341f77",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/subprojects/boringssl-40e035a9e5d721b3b7c15c46259d782ffe7d9e96/third_party/googletest/LICENSE",
-      "path": "licenses/upstream-source/021-LICENSE",
-      "size": 1475,
-      "sha256": "9702de7e4117a8e2b20dafab11ffda58c198aede066406496bef670d40a22138",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
+      "sha256": "e0afbb47be661ce2076d21a1d4dc02caa58b7c215ab7ff9d151b6724be341f77"
     },
     {
       "source_archive_member": "android-tools-static-36.0.1-src/subprojects/boringssl-40e035a9e5d721b3b7c15c46259d782ffe7d9e96/third_party/fiat/LICENSE",
       "path": "licenses/upstream-source/022-LICENSE",
       "size": 638,
-      "sha256": "9eacbcb81be660840c714a560a9d65ba07913db98dd4baf969f78dd499fdd60f",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
-    },
-    {
-      "source_archive_member": "android-tools-static-36.0.1-src/subprojects/boringssl-40e035a9e5d721b3b7c15c46259d782ffe7d9e96/third_party/wycheproof_testvectors/LICENSE",
-      "path": "licenses/upstream-source/023-LICENSE",
-      "size": 11357,
-      "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
+      "sha256": "9eacbcb81be660840c714a560a9d65ba07913db98dd4baf969f78dd499fdd60f"
     },
     {
       "source_archive_member": "android-tools-static-36.0.1-src/subprojects/boringssl-40e035a9e5d721b3b7c15c46259d782ffe7d9e96/LICENSE",
       "path": "licenses/upstream-source/024-LICENSE",
       "size": 13115,
-      "sha256": "827c8d8fc207c2392794eef9e00fe246f9f61fdcc132556c275be3dd8c3cd97f",
-      "source_archive": "android-tools-static-36.0.1-src.tar.gz"
+      "sha256": "827c8d8fc207c2392794eef9e00fe246f9f61fdcc132556c275be3dd8c3cd97f"
     },
     {
       "source_archive": "abseil-cpp-20250814.1.tar.gz",
@@ -283,45 +163,10 @@
     },
     {
       "source_archive": "lz4-1.10.0.tgz",
-      "source_archive_member": "lz4-1.10.0/contrib/debian/copyright",
-      "path": "licenses/upstream-source/041-copyright",
-      "size": 321,
-      "sha256": "4f6ef9d0e844bf432d6a0abb2623f5a61175ae40f7f0e3665490311d89e3af87"
-    },
-    {
-      "source_archive": "lz4-1.10.0.tgz",
-      "source_archive_member": "lz4-1.10.0/contrib/djgpp/LICENSE",
-      "path": "licenses/upstream-source/042-LICENSE",
-      "size": 1292,
-      "sha256": "d011d1e02cb32b71c1ce2922ab41a2e2ad30f4ecf8de22c078d53618205abc05"
-    },
-    {
-      "source_archive": "lz4-1.10.0.tgz",
-      "source_archive_member": "lz4-1.10.0/examples/COPYING",
-      "path": "licenses/upstream-source/043-COPYING",
-      "size": 14901,
-      "sha256": "609b910ef05c9c855ecc1da155a36ed0f57514eac452cf93446530b5ea4b3bc3"
-    },
-    {
-      "source_archive": "lz4-1.10.0.tgz",
       "source_archive_member": "lz4-1.10.0/lib/LICENSE",
       "path": "licenses/upstream-source/044-LICENSE",
       "size": 1311,
       "sha256": "8b58c446121a109ccf32edc094bba3010a3d85e4ee3702950db55e4d3e87736c"
-    },
-    {
-      "source_archive": "lz4-1.10.0.tgz",
-      "source_archive_member": "lz4-1.10.0/programs/COPYING",
-      "path": "licenses/upstream-source/045-COPYING",
-      "size": 14901,
-      "sha256": "609b910ef05c9c855ecc1da155a36ed0f57514eac452cf93446530b5ea4b3bc3"
-    },
-    {
-      "source_archive": "lz4-1.10.0.tgz",
-      "source_archive_member": "lz4-1.10.0/tests/COPYING",
-      "path": "licenses/upstream-source/046-COPYING",
-      "size": 14901,
-      "sha256": "609b910ef05c9c855ecc1da155a36ed0f57514eac452cf93446530b5ea4b3bc3"
     },
     {
       "source_archive": "lz4_1.10.0-2_patch.zip",
@@ -331,46 +176,11 @@
       "sha256": "bb721bee6e3739307cbe933e1b1f0ba4ad07e44d3e496eeb5b12a31a89cbc232"
     },
     {
-      "source_archive": "pcre2-10.47.tar.bz2",
-      "source_archive_member": "pcre2-10.47/LICENCE.md",
-      "path": "licenses/upstream-source/048-LICENCE.md",
-      "size": 4011,
-      "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811"
-    },
-    {
-      "source_archive": "pcre2-10.47.tar.bz2",
-      "source_archive_member": "pcre2-10.47/deps/sljit/LICENSE",
-      "path": "licenses/upstream-source/049-LICENSE",
-      "size": 1444,
-      "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb"
-    },
-    {
-      "source_archive": "pcre2-10.47.tar.bz2",
-      "source_archive_member": "pcre2-10.47/COPYING",
-      "path": "licenses/upstream-source/050-COPYING",
-      "size": 97,
-      "sha256": "99272c55f3dcfa07a8a7e15a5c1a33096e4727de74241d65fa049fccfdd59507"
-    },
-    {
-      "source_archive": "pcre2_10.47-3_patch.zip",
-      "source_archive_member": "pcre2-10.47/LICENSE.build",
-      "path": "licenses/upstream-source/051-LICENSE.build",
-      "size": 1070,
-      "sha256": "7939f4c45423cec4a18236ad0a88570e33508dd7462e07b1038001f90ece65fb"
-    },
-    {
       "source_archive": "protobuf-25.2.tar.gz",
       "source_archive_member": "protobuf-25.2/LICENSE",
       "path": "licenses/upstream-source/052-LICENSE",
       "size": 1732,
       "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d"
-    },
-    {
-      "source_archive": "protobuf-25.2.tar.gz",
-      "source_archive_member": "protobuf-25.2/third_party/lunit/LICENSE",
-      "path": "licenses/upstream-source/053-LICENSE",
-      "size": 1381,
-      "sha256": "3fcfcd6010d73bc2b22505b6a91779022a82661809a3e4e0a0bdd7b3463def8f"
     },
     {
       "source_archive": "protobuf-25.2.tar.gz",
@@ -392,13 +202,6 @@
       "path": "licenses/upstream-source/056-LICENSE",
       "size": 1002,
       "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
-    },
-    {
-      "source_archive": "zlib-1.3.2.tar.xz",
-      "source_archive_member": "zlib-1.3.2/contrib/minizip/LICENSE.Info-Zip",
-      "path": "licenses/upstream-source/057-LICENSE.Info-Zip",
-      "size": 3509,
-      "sha256": "fc686023047ce5ce3a18a9b8a777156f0e475929d3de06bac279f3c025d2b2ca"
     },
     {
       "source_archive": "zlib_1.3.2-1_patch.zip",
@@ -465,5 +268,6 @@
       "sha256": "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177",
       "size": 2883
     }
-  ]
+  ],
+  "scope": "Actual linked ADB application, its dependencies, source-build overlays and static runtime notices; full android-tools SBOMs excluded"
 }

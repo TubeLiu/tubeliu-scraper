@@ -1,49 +1,61 @@
-# Rebuild or relink bundled ADB with modified libusb
+# ADB 36.0.1 source and relinking pack
 
-Download `adb-36.0.1-corresponding-source.zip` from the same
-[v0.2.0 release](https://github.com/TubeLiu/tubeliu-scraper/releases/tag/v0.2.0)
-as the skill package, and unzip it into a new working directory.
-The pack includes the exact upstream 36.0.1 pre-patched source archive, missing
-dependency source and Meson overlay archives, AdbWinApi 36.0.1p3 source, the
-original notices and a complete SHA256 input manifest. No additional application
-or libusb source download is needed.
+Download the source pack from the same [v0.2.1 release](https://github.com/TubeLiu/tubeliu-scraper/releases/tag/v0.2.1) as the skill package: `adb-36.0.1-minimal-source.zip`.
 
-A compiler and normal build tools are still required. The upstream binary build
-uses Meson, Ninja, CMake, Python, patch/git and a C/C++ compiler. Windows uses
-MSYS2 UCRT64, GCC and NASM; macOS uses Xcode's command line tools. These normal
-toolchains and the operating system SDK are not in this source delivery.
-See the included original `.github/workflows/release.yml` for the exact upstream
-build configuration. We have verified all source inputs and recipes, but have
-not run a new complete C++ rebuild on Windows or macOS in this task.
+This pack accompanies TubeLiu's Scraper's Windows x86_64 and macOS universal2
+ADB binaries. It contains the actual ADB application source, its linked library
+sources and original code-generation inputs, and the fixed dependency sources
+needed to modify libusb and link a new executable. It excludes android-tools'
+unrelated fastboot and filesystem tools, performance traces, test APKs,
+precompiled profiling tools and large BoringSSL test vectors.
 
-## Verify and populate the offline source cache
+The supplied library source archives remain unchanged and include their own
+upstream build material, notices and small tests/examples. This pack does not
+claim to remove every test file from those required dependencies.
 
-From the unpacked source-pack directory, with Python 3.10 or later:
+Source origin: `meator/android-tools-static` 36.0.1, commit
+`cdadf2ecf68bd3b8c8971b9214cd2bc4e2d77127`. Unmodified retained files have
+their original-member SHA256 in `source-package-manifest.json`. Original in-tree
+header aliases have been materialized as identical ordinary files for portable
+ZIP extraction. `BUILD-CHANGES.patch` records changes only to the build controls:
+the ADB target alone is configured, irrelevant tool targets/completions are
+omitted, and the actual shipped libusb wrap is used. Source files and headers
+implementing ADB and its libraries are not rewritten.
+
+## Verify and prepare offline inputs
+
+Unzip this pack into a new working directory. With Python 3.10 or newer:
 
 ```text
 python verify-sources.py
-tar -xzf upstream/android-tools-static-36.0.1-src.tar.gz
-python verify-sources.py --populate-cache android-tools-static-36.0.1-src
-cd android-tools-static-36.0.1-src
+python verify-sources.py --populate-cache
+cd adb-source
 ```
 
-On macOS use `python3` if that is the installed Python command. On Windows use
-an MSYS2 UCRT64 shell for the subsequent Meson and compiler commands. Cache
-population copies only the hash-verified archives to `subprojects/packagecache`;
-it neither fetches network data nor executes source code.
+On macOS, use `python3` if that is the installed command. The helper verifies
+every retained file and dependency archive, and copies only the checked archives
+to `adb-source/subprojects/packagecache`. It neither downloads files nor executes
+any application or library source. Existing modified cache entries, symlinks,
+junctions and targets outside the chosen source tree are rejected.
 
-The source archive already contains the patched BoringSSL source. Other required
-sources and their overlays are in the populated cache, including libusb 1.0.29.
-The release uses `use_bundled_libusb=false`; its library is the libusb wrap,
-not the different Google snapshot at `vendor/libusb`.
+Compiler and normal build tools are still required: Meson, Ninja, CMake, Python,
+patch/git and a C/C++ compiler. Windows uses MSYS2 UCRT64 with GCC and NASM;
+macOS uses Xcode's command line tools. Those normal toolchains and OS SDKs are
+not part of this source delivery. Source hashes and the static Meson/CMake file
+closure were checked; a new complete C++ rebuild was not executed on this host.
 
-Meson reads and checks local cache files even in `nodownload` mode. The following
-commands also force the provided subprojects so an installed system library
-does not silently replace the pinned sources. This behavior is documented by
-[Meson's wrap manual](https://mesonbuild.com/Wrap-dependency-system-manual.html)
-and [subproject options](https://mesonbuild.com/Subprojects.html#command-line-options).
+`--wrap-mode=nodownload` uses the included local cache. Forced subprojects prevent
+installed system libraries from silently substituting different sources. The
+provided route uses libusb 1.0.29 from the wrap, not the different optional
+Google snapshot previously present in `vendor/libusb`.
+BoringSSL uses `BUILD_TESTING=false` and the original default `FUZZ=false`;
+enabling its removed test or fuzz targets is outside this minimal build scope.
+The original BoringSSL error-definition tables and object-definition/number
+inputs are included alongside their generator programs and generated files.
 
 ## Windows x86_64
+
+Run in an MSYS2 UCRT64 shell from `adb-source`:
 
 ```sh
 meson setup build \
@@ -51,18 +63,18 @@ meson setup build \
   --native-file nativefiles/release_configuration_fullstatic.ini \
   --native-file nativefiles/release_configuration_standardlayout.ini \
   --wrap-mode=nodownload \
-  --force-fallback-for=fmt,lz4,zlib,zstd,libusb,abseil-cpp,AdbWinApi,protobuf,boringssl,google-brotli,gtest,pcre2 \
-  -Duse_bundled_libusb=false
+  --force-fallback-for=fmt,lz4,zlib,zstd,libusb,abseil-cpp,AdbWinApi,protobuf,boringssl,google-brotli,gtest \
+  -Dbuildonlyadb=true -Duse_bundled_libusb=false -Dgenerate_sbom_data=false
 meson compile -C build adb
 ```
 
-The result is `build/adb.exe`. The existing AdbWinApi/AdbWinUsbApi DLLs in the
-provided AdbWinApi input can be used alongside it. The separate full DLL source
-is `dependencies/AdbWinApi-36.0.1p3-src.zip`, with its original rebuild files.
+The result is `build/adb.exe`. Its existing Windows USB DLLs and import libraries
+are in the original `AdbWinApi-36.0.1p3.zip` input; full DLL source is separately
+included as `dependencies/AdbWinApi-36.0.1p3-src.zip`.
 
 ## macOS
 
-For an arm64 host:
+For an arm64 build host:
 
 ```sh
 meson setup build-arm64 \
@@ -70,12 +82,12 @@ meson setup build-arm64 \
   --native-file nativefiles/release_configuration_standardlayout.ini \
   --native-file "nativefiles/macos arm64.ini" \
   --wrap-mode=nodownload \
-  --force-fallback-for=fmt,lz4,zlib,zstd,libusb,abseil-cpp,protobuf,boringssl,google-brotli,gtest,pcre2 \
-  -Duse_bundled_libusb=false
+  --force-fallback-for=fmt,lz4,zlib,zstd,libusb,abseil-cpp,protobuf,boringssl,google-brotli,gtest \
+  -Dbuildonlyadb=true -Duse_bundled_libusb=false -Dgenerate_sbom_data=false
 meson compile -C build-arm64 adb
 ```
 
-For x86_64, use the original release's cross-build configuration:
+For x86_64 using the original cross-build configuration:
 
 ```sh
 meson setup build-x86_64 \
@@ -84,32 +96,31 @@ meson setup build-x86_64 \
   --cross-file "crossfiles/macos x86_64.ini" \
   --native-file "nativefiles/macos cpp_std fix.ini" \
   --wrap-mode=nodownload \
-  --force-fallback-for=fmt,lz4,zlib,zstd,libusb,abseil-cpp,protobuf,boringssl,google-brotli,gtest,pcre2 \
-  -Duse_bundled_libusb=false
+  --force-fallback-for=fmt,lz4,zlib,zstd,libusb,abseil-cpp,protobuf,boringssl,google-brotli,gtest \
+  -Dbuildonlyadb=true -Duse_bundled_libusb=false -Dgenerate_sbom_data=false
 meson compile -C build-x86_64 adb
 ```
 
-On a capable macOS build host, combine the two results if a universal executable
-is wanted:
+After building both on a capable macOS host:
 
 ```sh
 lipo -create build-x86_64/adb build-arm64/adb -output adb-universal
 ```
 
-## Change libusb and relink
+## Modify libusb and relink
 
-Run the first Meson setup for your platform to materialize its cached subprojects.
-Modify files in `subprojects/libusb-1.0.29/` and run `meson compile -C build adb`
-(or the appropriate `build-arm64`/`build-x86_64` directory). Meson/Ninja rebuild
-the affected static library and link a new executable from the included complete
-ADB application source. Do not replace `vendor/libusb`; it is not the library
-used by this release configuration.
+First run the Meson setup for your platform to materialize cached subprojects.
+Edit `adb-source/subprojects/libusb-1.0.29/`, then run the appropriate
+`meson compile -C build adb` command. The build recompiles the changed static
+library and relinks the executable from the supplied application source.
+Keep the library's notices and record changes when redistributing modifications.
+Rebuilding under different compiler/SDK versions need not produce identical
+binary bytes. Tests disabled by the original release's `BUILD_TESTING=false`
+are not part of this minimal application build.
 
-Retain the original license texts when redistributing modified versions and
-record your changes. Rebuilding with the same source does not imply identical
-binary bytes across different compiler, SDK or build-tool versions.
-
-A user-built executable may be used through the skill's explicit `--adb` option;
-the built-in checksum manifest deliberately does not authorize arbitrary
-replacements of the shipped executable. Follow your operating system's normal
-approval and signing process; no Gatekeeper or quarantine bypass is provided.
+Original license terms permit modifying this third-party software for your own
+use and reverse engineering to debug those modifications. Use the skill's
+explicit `--adb` option for a self-built executable; the shipped checksum
+manifest does not authorize arbitrary substitutions of bundled bytes. Follow
+your OS's normal signing/approval process; no Gatekeeper or quarantine bypass
+is provided.
