@@ -38,11 +38,75 @@ class CredentialTests(unittest.TestCase):
         self.assertNotIn("path", report)
         replacement = {**DEVELOPER, "SCREENSCRAPER_DEVPASSWORD": "different-invented-password"}
         credentials.save_credentials(replacement, self.path)
-        self.assertEqual(credentials.load_credentials(self.path), replacement)
-        self.assertFalse(credentials.credential_status({}, self.path)["user_configured"])
+        self.assertEqual(credentials.load_credentials(self.path), {**replacement, **USER})
+        self.assertTrue(credentials.credential_status({}, self.path)["user_configured"])
         self.assertTrue(credentials.forget_credentials(self.path)["forgotten"])
         self.assertFalse(credentials.forget_credentials(self.path)["forgotten"])
         self.assertEqual(credentials.load_credentials(self.path), {})
+
+    def test_account_only_store_is_persistent_but_not_api_ready_and_updates_preserve_pairs(self):
+        saved = credentials.save_credentials(USER, self.path)
+        self.assertTrue(saved["configured"])
+        self.assertTrue(saved["user_configured"])
+        self.assertFalse(saved["developer_configured"])
+        self.assertFalse(saved["ready"])
+        self.assertEqual(credentials.load_credentials(self.path), USER)
+        self.assertEqual(credentials.resolve_credentials({}, self.path), USER)
+        self.assertEqual(credentials.credential_status({}, self.path)["missing"], list(credentials.DEVELOPER_FIELDS))
+        credentials.save_credentials(DEVELOPER, self.path)
+        self.assertEqual(credentials.load_credentials(self.path), {**DEVELOPER, **USER})
+        updated_user = {"SCREENSCRAPER_SSID": "different-invented-account", "SCREENSCRAPER_SSPASSWORD": "different-invented-user-password"}
+        updated = credentials.save_credentials(updated_user, self.path)
+        self.assertTrue(updated["ready"])
+        self.assertEqual(credentials.load_credentials(self.path), {**DEVELOPER, **updated_user})
+        for secret in (*DEVELOPER.values(), *USER.values(), *updated_user.values()):
+            self.assertNotIn(secret, json.dumps(saved) + json.dumps(updated))
+
+    def test_cli_account_configuration_survives_new_process_without_claiming_api_ready(self):
+        environment = {key: value for key, value in os.environ.items() if key not in credentials.FIELDS}
+        environment[credentials.PATH_ENV] = str(self.path)
+        script = SCRIPTS / "screenscraper.py"
+        values = {**DEVELOPER, **USER}
+
+        def call(*arguments, input_text=None):
+            result = subprocess.run(
+                [sys.executable, "-B", str(script), *arguments],
+                input=input_text, text=True, capture_output=True,
+                env=environment, cwd=self.temporary.name, timeout=20,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for value in values.values():
+                self.assertNotIn(value, result.stdout + result.stderr)
+            return json.loads(result.stdout)
+
+        saved = call("configure", "--user-only", "--stdin", input_text=json.dumps(USER))
+        self.assertEqual(saved["status"], "needs_developer_credentials")
+        self.assertTrue(saved["user_configured"])
+        self.assertFalse(saved["ready_for_api"])
+        self.assertIn("账号密码已保存", saved["message"])
+        fresh = call("check")
+        self.assertEqual(fresh["status"], "needs_developer_credentials")
+        self.assertEqual(fresh["storage"], "saved")
+        self.assertFalse(fresh["ready_for_api"])
+        enabled = call("configure", "--stdin", input_text=json.dumps(DEVELOPER))
+        self.assertTrue(enabled["ready_for_api"])
+        self.assertTrue(enabled["user_configured"])
+        call("forget")
+        self.assertFalse(self.path.exists())
+
+    def test_partial_update_does_not_discard_an_unreadable_existing_store(self):
+        credentials.save_credentials(DEVELOPER, self.path)
+        self.path.write_text("unreadable-private-store", encoding="utf-8")
+        before = self.path.read_bytes()
+        for pair in (USER, DEVELOPER):
+            with self.subTest(fields=list(pair)):
+                with self.assertRaises(credentials.CredentialError) as error:
+                    credentials.save_credentials(pair, self.path)
+                self.assertEqual(error.exception.code, "invalid_store")
+                self.assertEqual(self.path.read_bytes(), before)
+        complete = {**DEVELOPER, **USER}
+        credentials.save_credentials(complete, self.path)
+        self.assertEqual(credentials.load_credentials(self.path), complete)
 
     def test_cli_configuration_survives_new_process_and_can_be_cleared(self):
         environment = dict(os.environ)
@@ -98,6 +162,8 @@ class CredentialTests(unittest.TestCase):
         credentials.save_credentials(DEVELOPER, self.path)
         original = self.path.read_bytes()
         invalid = ({}, {"SCREENSCRAPER_DEVID": "only-one"},
+                   {"SCREENSCRAPER_SSID": "unpaired-account"},
+                   {"SCREENSCRAPER_SSPASSWORD": "unpaired-password"},
                    {**DEVELOPER, "SCREENSCRAPER_DEVPASSWORD": " \t\n"},
                    {**DEVELOPER, "SCREENSCRAPER_SSID": "unpaired-user"},
                    {**DEVELOPER, "SCREENSCRAPER_SSID": "", "SCREENSCRAPER_SSPASSWORD": ""},
@@ -159,7 +225,7 @@ class CredentialTests(unittest.TestCase):
         self.assertFalse(status["ready"])
         self.assertEqual(status["error"], "invalid_store")
         self.assertNotIn("invented-password", json.dumps(status))
-        credentials.save_credentials(DEVELOPER, self.path)
+        credentials.save_credentials({**DEVELOPER, **USER}, self.path)
         if os.name == "nt":
             with patch.object(credentials, "_dpapi", side_effect=credentials.CredentialError("Cannot decrypt credentials for the current Windows user", code="decrypt_failed")):
                 status = credentials.credential_status({}, self.path)

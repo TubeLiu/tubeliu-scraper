@@ -1,49 +1,48 @@
 ---
-name: es-de-resource-workbench
-description: 刮削、中文化和修复 ES-DE 游戏资料与媒体，适用于安卓手机、平板、掌机及本地 ES-DE 游戏库；保护游玩记录，提供可恢复的备份与实时 Web 工作台。用于补齐资源、纠正错配、迁移路径或复核已有刮削结果，不用于下载游戏 ROM。
+name: tubeliu-scraper
+description: 刮削、中文化和修复 ES-DE 游戏资料与媒体。触发词包括“TubeLiu 的刮削器”“刮削 ES-DE”“中文化游戏资料”“补齐游戏封面、截图或视频”“修复 gamelist”“保护游玩记录”；用户需要处理安卓手机、平板、掌机或本地 ES-DE 游戏库时使用。提供备份、恢复和实时 Web 工作台，不用于下载游戏 ROM。
 ---
 
-# ES-DE 资源工作台
+# TubeLiu 的刮削器
 
-把实际游戏文件、游戏身份、资料来源、原生媒体、历史记录和安装结果对应起来。默认中文资料；尊重本次用户的语言、媒体种类和视频限制。脚本参数化，不依赖某台设备的序列号、存储卡 ID、ADB 位置或主题名。
+根据实际游戏文件补齐 ES-DE 资料与媒体，保护现有游玩记录，让用户通过网页查看真实进度、完整资料和实际素材。默认中文；本次用户指定的语言、平台、媒体种类和处理范围优先。
 
-## 开始工作
+## 确认范围并启动工作台
 
-每次创建独立的运行目录，放在用户工作目录下的 `esde-runs/<时间-设备>`，不要把游戏、账号、运行数据库或大媒体写进 skill。找到可用 Python 3.10+；脚本路径相对本 skill 根目录。
+为本次任务建立独立运行目录 `esde-runs/<时间-设备>`，所有阶段复用同一 RUN。数据库和媒体缓存放在用户工作目录；凭据保存在独立的本机用户配置目录。这些数据不写入 skill。
 
-1. 先启动工作台：`scripts/workbench.py init --run RUN --title TITLE`，随后 `scripts/launch_workbench.py --runs RUNS`。需要同 Wi-Fi 访问时加 `--lan`。将实际返回的访问链接交给用户，并尽可能打开浏览器预览。它是本机只读监视器，不需要云托管。
-2. 安卓先 `scripts/esde.py devices`，明确选择已授权的序列号，确认真实 ES-DE 根、ROM 根及自定义系统配置。多个设备不凭列表顺序选择。只读快照用 `snapshot-android`；本地库用 `audit`。详细命令见 [references/workflow.md](references/workflow.md)。
-3. 缺少信息时，继续已能确定的部分。未授权、断线、空间不足或依赖缺失写入 `blocked` 和原因；保持原运行目录以便恢复，不能让工作台继续显示正在写入。
-4. 本次需要在线补齐时，先 `scripts/screenscraper.py check`，自动读取已保存的本机凭据。未配置时按 [references/sources-and-media.md](references/sources-and-media.md) 提示用户配置并保存，附官方开发者申请入口和跳过后的限制；允许先跳过，并继续扫描与其他来源处理。同一任务已选择跳过就不逐游戏重复询问。只读审计不要求提供在线服务凭据。
+先用 `scripts/workbench.py init --run RUN --title TITLE` 建立任务，再用 `scripts/launch_workbench.py --runs RUNS` 启动工作台；需要同 Wi-Fi 访问时加 `--lan`。将程序实际返回的完整链接交给用户并打开预览，访问令牌由启动器自动生成。
 
-## 处理资料和媒体
+安卓设备用 `scripts/esde.py devices` 确认已授权的序列号及真实 ES-DE、ROM 根目录；多个设备不能按列表顺序选择。用 `snapshot-android` 取得只读快照，本地库用 `audit`。扫描和命令细节按需读 [references/workflow.md](references/workflow.md)。
 
-按实际文件清单建立任务，区分同作的地区、版本、改版、多碟和重复文件。先确认身份再补资料。标题、介绍、厂商、类型、日期、人数要有依据；无法核实的字段保留空值或原值并标记未知，不能靠常识猜填。普通百科只是辅助，优先官方作品页面和对应游戏平台资料。
+## 配置资料来源
 
-原生媒体六类为 `covers / screenshots / titlescreens / marquees / miximages / videos`，目标按实际 ROM 的相对目录与文件 stem 命名。遵循现有 ES-DE 配置和本次范围；六类齐全不是所有历史信息均已确认。媒体必须属于该作品和版本，绿色占位图、另一作的盒图或视频不能算完成。可选背面、3D 盒图等单独复核。
+需要在线补齐时，先用 `scripts/screenscraper.py check` 读取本机已保存的配置。缺少用户账号时，提示在 [ScreenScraper 官方注册页面](https://www.screenscraper.fr/membreinscription.php) 创建账号，再用 `scripts/screenscraper.py configure --user-only` 引导用户通过本机安全输入账号和密码。持久化保存，后续自动复用；密码和凭据不得进入聊天输出、日志、工作台或分发包。
 
-ScreenScraper 的用户账号和开发者 API 凭据是两组信息。需要在线查询时读 [references/sources-and-media.md](references/sources-and-media.md)，调用 `scripts/screenscraper.py`，先审查候选结果再制作补丁。首次配置后持久化到用户电脑的独立配置目录，下次自动读取；环境变量可临时覆盖。不要复制客户端内嵌的开发者密钥，不把凭据文件、查询凭据、设置文件或密码放进日志、工作台、skill 或公开仓库。
+若接口还缺少开发者授权，按 [references/sources-and-media.md](references/sources-and-media.md) 提供官方申请入口和下一步。用户账号配置成功不等于接口已获授权，服务端验证通过前不能声称可用。
 
-默认新视频目标约 30 秒、低于 6 MB、最高 720 像素高、H.264；可按设备和用户要求调整。实机录像标记 `gameplay_video`，截图预览标记 `screenshot_preview`，标题图预览标记 `original_title_art_preview`。预览不能称为实机录像；封面、截图和标题图不能用生成图片冒充原作素材。`scripts/media.py` 提供解码、视频检查和处理；内容身份仍需目视确认。
+用户可以跳过配置：继续扫描、展示和整理已有资源，使用可访问的公开来源补充；说明无法调用该服务批量查询与获取媒体，补齐范围和速度可能受限，部分游戏会留下缺项。同一任务不逐游戏重复询问；仅审计现有资源时不要求在线凭据。
 
-## 准备与写入
+## 匹配游戏与补齐资源
 
-`normalize` 或 `prepare` 生成单独的 XML 输出。每个实际游戏文件恰好一个 `./真实相对文件名` 引用；逐项验证映射，不能用覆盖重复键的字典掩盖重复。不要把安卓 `/storage/<卡ID>/...` 绝对路径“校验通过”当作 ES-DE 已能显示资料。
+按实际文件建立任务，区分地区、版本、改版、多碟和重复文件。先确认作品身份，再补名称、简介、厂商、类型、日期和人数；优先作品官方及对应游戏平台资料。无法核实的字段保留原值或空值并标记未知，不能猜填。
 
-完整保留 `playcount / playtime / lastplayed`、收藏、隐藏、模拟器、排序及其他私有字段、属性和多顶层 XML。历史冲突需检查准备报告；不能简单相加游玩次数。任何无法保留的冲突先阻止对应写入，保留原始快照。
+原生媒体为 `covers / screenshots / titlescreens / marquees / miximages / videos`，按实际 ROM 的相对目录与文件 stem 映射，遵循现有 ES-DE 配置。素材必须属于对应作品和版本；占位图、生成图及错配素材不能算完成。用 `scripts/media.py` 检查解码和视频规格，另做素材身份的目视确认。
 
-用户已请求补齐并安装时继续已授权的写入，不重复索要许可。仅请求审计、设计或候选资料时不写设备。写入前读 [references/deployment.md](references/deployment.md)，使用 `scripts/deploy.py` 的显式文件清单、不可变备份及 SHA 复核。ES-DE 正在运行时先让它正常保存并退出，防止覆盖新资料和历史；不中断正在进行的游戏。不修改 ROM、不取得 root、不扩大目录权限。
+默认新视频约 30 秒、低于 6 MB、最高 720 像素高、H.264；可按用户要求调整。实机录像标记 `gameplay_video`，截图预览标记 `screenshot_preview`，标题图预览标记 `original_title_art_preview`，不能将预览称为实机录像。来源与媒体处理细节见 [references/sources-and-media.md](references/sources-and-media.md)。
 
-## 跟踪与验收
+## 保留历史并写入
 
-所有阶段复用同一 RUN。内置脚本会直接更新状态库；额外来源研究、人工匹配、主题处理和目视检查用 `workbench.py update / job / event` 更新真实计数与证据，详见 [references/workbench.md](references/workbench.md)。发现总数前不显示百分比，不把固定权重包装成总体进度，不把断线后的旧数据称为实时。
+用 `normalize` 或 `prepare` 生成独立 XML 输出，每个实际游戏文件恰好对应一个 `./真实相对文件名` 引用，逐项检查重复与路径。完整保留 `playcount / playtime / lastplayed`、收藏、隐藏、模拟器、排序以及私有字段、属性和多顶层 XML。历史冲突不能简单相加；无法无损处理时阻止对应写入，保留原始快照。
 
-每个条目的详情保存完整扫描资料、简介、实际路径、文件信息、游玩与私有字段，不只保存完成状态。将真实媒体登记到工作台的受控预览接口：本地扫描与媒体处理自动接入，安卓快照绑定明确序列号后按用户查看的文件只读缓存；图片可放大、多个候选可切换，视频可直接播放。已扫描存在、已经验收和电脑可以预览是三种不同信息；没有缓存或设备断线要如实显示。不要直接把安卓路径或任意本地文件 URL 塞进网页，媒体只用已登记的 opaque 资产端点。
+用户已请求补齐并安装时继续已授权的写入；仅审计或查看候选资料时不写设备。写入前按 [references/deployment.md](references/deployment.md) 使用 `scripts/deploy.py` 的显式文件清单、不可变备份和 SHA 复核。让 ES-DE 正常保存并退出后再写入，不中断正在进行的游戏，不修改 ROM、获取 root 或扩大目录权限。
 
-以本次范围验收：实际引用唯一、原始历史一致、所需媒体可解码、目标内容 SHA 一致，安装范围还需在 ES-DE 中确认名称、介绍和代表性媒体显示与播放。仅路径修复用 `verify-local --checks structure`，其他语言用 `--language any`；未请求的媒体处理不额外阻塞窄范围任务。结构检查或文件 hash 通过时先记录该阶段完成，仍待本次所需媒体或目视 QA 时任务保持进行中。`scripts/finish.py` 要求对应范围的验收凭证才封存任务；未知事实在最终说明与工作台中保留。
+## 展示进度并验收
 
-目视检查先确认当前界面和屏保状态，不通过启动游戏检查资料。若检查误启动游戏，依据本次不可变备份恢复仅由该测试产生的历史变化，并重新核对。备份保留；暂存清理只删本次清单列出的已验证文件，未知文件保留。
+内置脚本直接更新任务状态；额外来源研究、人工匹配和目视检查用 `workbench.py update / job / event` 写入实际计数与证据。发现总数前不显示百分比；断线、未授权或空间不足时记录阻塞原因，保留任务以便恢复。工作台规则见 [references/workbench.md](references/workbench.md)。
 
-输出简洁说明：本次处理的实际文件数、平台、补齐媒体、修正与未知项、备份位置、验收结果和工作台链接。任务结束不自动停掉工作台，方便用户回看。
+详情面板展示完整扫描资料、简介、实际路径、文件信息、游玩与私有字段，并登记真实媒体预览，支持图片放大、候选切换和视频播放。安卓媒体缓存必须绑定已确认的序列号；网页只使用已登记的受控媒体接口。区分“扫描到”“已验收”和“可预览”，未缓存或设备断线如实显示。
 
-本 skill 源自一次 Switch 修复与一次 12 平台修复；具体坑点和可迁移经验见 [references/case-lessons.md](references/case-lessons.md)，仅在路径、历史或安卓权限异常时读，不把旧设备数据当作当前事实。
+按本次范围检查引用唯一、历史一致、媒体可解码及写入内容 SHA 一致；安装任务还需在 ES-DE 中确认代表性游戏的资料显示和媒体播放。仅修复路径时用 `verify-local --checks structure`，其他语言用 `--language any`，不因未请求的媒体阻塞窄范围任务。用 `scripts/finish.py` 依据对应验收凭证封存；未知事实继续保留。
+
+目视验收不启动游戏；误启动造成的游玩记录变化仅依据本次备份恢复。保留备份，清理只涉及本次清单中已验证的暂存文件。结束时简述处理数量、平台、补齐内容、缺项、备份位置、验收结果和工作台链接，工作台保留供用户回看。

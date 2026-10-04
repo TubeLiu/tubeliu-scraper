@@ -180,6 +180,25 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(report["status"], "needs_credentials")
         self.assertIn("SCREENSCRAPER_SSPASSWORD", report["missing_environment_variables"])
 
+    def test_account_only_check_distinguishes_saved_account_from_api_readiness(self):
+        user = {field: self.env[field] for field in provider.USER_FIELDS}
+        with patch.object(provider, "default_open", side_effect=AssertionError("must not request network")):
+            report = provider.credential_check(user)
+            with self.assertRaises(provider.MissingCredentials) as caught:
+                provider.query(15, search_name="Game", env=user)
+        self.assertEqual(report["status"], "needs_developer_credentials")
+        self.assertTrue(report["configured"])
+        self.assertTrue(report["user_configured"])
+        self.assertFalse(report["developer_configured"])
+        self.assertFalse(report["ready_for_api"])
+        self.assertEqual(report["storage"], "environment")
+        self.assertEqual(set(report["missing_environment_variables"]), set(provider.DEVELOPER_FIELDS))
+        self.assertIn("用户账号已配置", report["prompt"])
+        self.assertIn("并不表示 API 已可用", report["prompt"])
+        self.assertEqual(caught.exception.report, report)
+        for value in user.values():
+            self.assertNotIn(value, json.dumps(report))
+
     def test_check_aliases_are_nonblocking_and_make_no_network_request(self):
         report = provider.credential_check({})
         for command in ("check", "status", "doctor"):
@@ -236,6 +255,35 @@ class ProviderTests(unittest.TestCase):
         with patch("sys.stdin.isatty", return_value=True), patch.object(provider.getpass, "getpass", side_effect=[self.env[field] for field in (*provider.DEVELOPER_FIELDS, *provider.USER_FIELDS)]), patch.object(provider.credential_store, "save_credentials") as save, patch.object(provider, "credential_check", return_value=report):
             provider.configure_credentials()
         save.assert_called_once_with(self.env)
+
+    def test_configure_user_only_uses_two_hidden_prompts_and_accepts_account_stdin(self):
+        user = {field: self.env[field] for field in provider.USER_FIELDS}
+        report = provider.credential_check(user)
+        with patch("sys.stdin.isatty", return_value=True), patch.object(provider.getpass, "getpass", side_effect=list(user.values())) as hidden_input, patch.object(provider.credential_store, "save_credentials") as save, patch.object(provider, "credential_check", return_value=report):
+            result = provider.configure_credentials(user_only=True)
+        self.assertEqual(hidden_input.call_count, 2)
+        save.assert_called_once_with(user)
+        self.assertFalse(result["ready_for_api"])
+        self.assertIn("账号密码已保存", result["message"])
+        for arguments in (["configure", "--stdin"], ["configure", "--user-only", "--stdin"]):
+            with patch("sys.stdin", io.StringIO(json.dumps(user))), patch.object(provider.credential_store, "save_credentials") as save, patch.object(provider, "credential_check", return_value=report), contextlib.redirect_stdout(io.StringIO()) as output:
+                code = provider.main(arguments)
+            self.assertEqual(code, 0)
+            save.assert_called_once_with(user)
+            self.assertFalse(json.loads(output.getvalue())["ready_for_api"])
+            for value in user.values():
+                self.assertNotIn(value, output.getvalue())
+
+    def test_user_only_stdin_rejects_extra_or_partial_pairs_before_save(self):
+        invalid = (self.env, {provider.USER_FIELDS[0]: "unpaired-account"},
+                   {**{field: self.env[field] for field in provider.USER_FIELDS}, "other": "invented-extra-secret"})
+        for values in invalid:
+            with patch("sys.stdin", io.StringIO(json.dumps(values))), patch.object(provider.credential_store, "save_credentials") as save, contextlib.redirect_stderr(io.StringIO()) as error:
+                code = provider.main(["configure", "--user-only", "--stdin"])
+            self.assertEqual(code, 2)
+            save.assert_not_called()
+            for value in values.values():
+                self.assertNotIn(value, error.getvalue())
 
     def test_forget_removes_local_store_and_warns_about_environment_override(self):
         report = provider.credential_check({})

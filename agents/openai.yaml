@@ -1,6 +1,6 @@
 interface:
-  display_name: "ES-DE 资源工作台"
+  display_name: "TubeLiu 的刮削器"
   short_description: "刮削与中文化 ES-DE 游戏资料，保护记录并通过网页实时查看进度"
-  default_prompt: "使用 $es-de-resource-workbench 为已连接的安卓设备补齐并修复 ES-DE 游戏资料和媒体，启动支持同 Wi-Fi 访问的实时工作台。"
+  default_prompt: "使用 $tubeliu-scraper 为已连接的安卓设备补齐并修复 ES-DE 游戏资料和媒体，保留游玩记录，启动支持同 Wi-Fi 访问的实时工作台。"
 policy:
   allow_implicit_invocation: true

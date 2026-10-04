@@ -91,8 +91,8 @@ def _normalize(values, *, required, reject_unknown=False):
         if any(present) and not all(present):
             absent = [field for field in pair if field not in result]
             raise CredentialError("Provide both fields of each credential pair", code="incomplete_pair", missing=absent)
-    if required and not all(field in result for field in DEVELOPER_FIELDS):
-        raise CredentialError("ScreenScraper developer credentials are required to save", code="incomplete_pair", missing=DEVELOPER_FIELDS)
+    if required and not result:
+        raise CredentialError("Provide a complete developer pair or user account pair", code="incomplete_pair", missing=FIELDS)
     return result
 
 
@@ -236,7 +236,7 @@ def _dpapi(data, *, decrypt=False):
 def _summary(values, *, storage, protection):
     developer = all(field in values for field in DEVELOPER_FIELDS)
     user = all(field in values for field in USER_FIELDS)
-    return {"configured": developer, "ready": developer, "storage": storage, "protection": protection,
+    return {"configured": developer or user, "ready": developer, "storage": storage, "protection": protection,
             "developer_configured": developer, "user_configured": user,
             "missing": [] if developer else list(DEVELOPER_FIELDS)}
 
@@ -246,7 +246,7 @@ def _protection():
 
 
 def save_credentials(values, path=None):
-    """Atomically save a complete developer pair and an optional complete user pair."""
+    """Atomically update whole pairs, retaining any previously saved other pair."""
     selected = _normalize(values, required=True, reject_unknown=True)
     target = _path(path)
     try:
@@ -255,6 +255,11 @@ def save_credentials(values, path=None):
         _private(target.parent, set_permissions=True, directory=True)
         if target.exists():
             _private(target)
+            if not all(field in selected for field in FIELDS):
+                # Every partial update preserves the other saved pair. An
+                # unreadable store can only be replaced with all four fields,
+                # or explicitly cleared before starting a new configuration.
+                selected = {**load_credentials(target), **selected}
         raw = json.dumps(selected, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         envelope = {"version": 1, "provider": "screenscraper", "protection": _protection()}
         if os.name == "nt":
@@ -357,7 +362,7 @@ def _resolve(env=None, path=None):
     for pair in (DEVELOPER_FIELDS, USER_FIELDS):
         if all(field in override for field in pair):
             result.update({field: override[field] for field in pair})
-    source = "environment" if any(field in override for field in DEVELOPER_FIELDS) else "saved" if saved else "none"
+    source = "environment" if override else "saved" if saved else "none"
     protection = _protection() if saved else "none"
     return result, source, protection
 

@@ -2,7 +2,7 @@
 """Explicit ScreenScraper candidate queries; never assume a candidate is the correct game.
 
 Official contract: https://www.screenscraper.fr/webapi2.php (checked 2026-10-03).
-Developer and optional user credential pairs use current-user local storage,
+Developer and user credential pairs use current-user local storage,
 with complete environment pairs taking precedence. ``check`` never uses the network.
 """
 from __future__ import annotations
@@ -47,13 +47,16 @@ def credential_check(env=None):
     status = credential_store.credential_status(env=env)
     missing = status.get("missing", [])
     ready = bool(status.get("ready"))
+    user_configured = bool(status.get("user_configured"))
+    state = "ready" if ready else "needs_developer_credentials" if user_configured else "needs_credentials"
     prompt = "ScreenScraper 凭据已配置，将自动复用；本次仅检查配置齐备，未在线验证。"
     if not ready:
         prompt = (
-            "已先检查环境变量和本机保存的 ScreenScraper 凭据。"
-            "如需使用此来源，请配置开发者 ID（devid）和开发者密码（devpassword）；"
-            "这是一组凭据，不是单个访问令牌，普通用户账号不能替代。"
-            "请在官方开发者论坛介绍软件并申请凭据；可运行 configure 在本机保存，后续自动复用。"
+            "ScreenScraper 用户账号已配置，将自动复用。" if user_configured else
+            "尚未配置 ScreenScraper 账号；可在官方注册页面创建账号，再运行 configure --user-only 保存账号密码，后续自动复用。"
+        ) + (
+            "此 API 还需要软件的开发者 ID（devid）和开发者密码（devpassword），普通用户账号不能替代。"
+            "缺少应用授权时，可在官方开发者论坛申请；账号已保存并不表示 API 已可用。"
             "也可以先跳过，继续其他来源与本地处理。"
         )
         if status.get("error"):
@@ -61,12 +64,12 @@ def credential_check(env=None):
         if missing:
             prompt += " 缺少：" + "、".join(missing) + "。"
     return {
-        "provider": "screenscraper", "status": "ready" if ready else "needs_credentials",
+        "provider": "screenscraper", "status": state,
         "ready_for_api": ready, "network_checked": False, "credential_verified": False,
         "configured": bool(status.get("configured")),
         "storage": status.get("storage", "none"), "protection": status.get("protection", "none"),
         "developer_configured": bool(status.get("developer_configured")),
-        "user_configured": bool(status.get("user_configured")),
+        "user_configured": user_configured,
         "missing_environment_variables": missing,
         "required_environment_variables": list(DEVELOPER_FIELDS),
         "optional_environment_variables": list(USER_FIELDS),
@@ -99,7 +102,7 @@ def credentials(env=None):
     return {**developer, **(user if all(user.values()) else {}), "softname": "es-de-resource-workbench"}
 
 
-def configure_credentials(stdin_json=False):
+def configure_credentials(stdin_json=False, user_only=False):
     """Read secrets from hidden interactive input or explicit stdin, never CLI arguments."""
     if stdin_json:
         raw = sys.stdin.read(65537)
@@ -109,20 +112,30 @@ def configure_credentials(stdin_json=False):
             values = json.loads(raw)
         except (json.JSONDecodeError, UnicodeError):
             raise ValueError("Credential input must be a JSON object containing the supported SCREENSCRAPER_ fields") from None
+        if user_only and (not isinstance(values, dict) or set(values) != set(USER_FIELDS)):
+            raise ValueError("--user-only requires only the complete SCREENSCRAPER_SSID and SCREENSCRAPER_SSPASSWORD pair")
     else:
         if not sys.stdin.isatty():
             raise ValueError("Use an interactive terminal for hidden credential input, or configure --stdin with a JSON object on standard input")
-        values = {
-            DEVELOPER_FIELDS[0]: getpass.getpass("ScreenScraper 开发者 ID（devid，不回显）："),
-            DEVELOPER_FIELDS[1]: getpass.getpass("ScreenScraper 开发者密码（devpassword，不回显）："),
-        }
-        user = getpass.getpass("普通用户账号（可选，直接回车跳过，不回显）：")
-        if user:
-            values[USER_FIELDS[0]] = user
-            values[USER_FIELDS[1]] = getpass.getpass("普通用户密码（不回显）：")
+        if user_only:
+            values = {
+                USER_FIELDS[0]: getpass.getpass("ScreenScraper 账号（不回显）："),
+                USER_FIELDS[1]: getpass.getpass("ScreenScraper 密码（不回显）："),
+            }
+        else:
+            values = {
+                DEVELOPER_FIELDS[0]: getpass.getpass("ScreenScraper 开发者 ID（devid，不回显）："),
+                DEVELOPER_FIELDS[1]: getpass.getpass("ScreenScraper 开发者密码（devpassword，不回显）："),
+            }
+            user = getpass.getpass("普通用户账号（可选，直接回车跳过，不回显）：")
+            if user:
+                values[USER_FIELDS[0]] = user
+                values[USER_FIELDS[1]] = getpass.getpass("普通用户密码（不回显）：")
     credential_store.save_credentials(values)
     result = credential_check()
     result["message"] = "ScreenScraper 凭据已保存到当前用户的本机配置，后续自动复用；未在线验证。"
+    if result["user_configured"] and not result["ready_for_api"]:
+        result["message"] = "ScreenScraper 账号密码已保存，后续自动复用；此 API 仍缺少软件的开发者授权，可先继续其他来源与本地处理。"
     return result
 
 
@@ -322,6 +335,7 @@ def main(argv=None):
     sub.add_parser("check", aliases=["status", "doctor"], help="Check local/saved credentials without a network request; missing credentials do not block other sources")
     configure_cli = sub.add_parser("configure", help="Save credentials for the current user; hidden interactive input by default")
     configure_cli.add_argument("--stdin", action="store_true", dest="stdin_json", help="Read one JSON object from standard input, never from command-line credential arguments")
+    configure_cli.add_argument("--user-only", action="store_true", help="Save only the account/password pair and retain any saved developer credentials")
     sub.add_parser("forget", help="Remove saved credentials; environment overrides must be unset separately")
     query_cli = sub.add_parser("query")
     query_cli.add_argument("--system-id", required=True)
@@ -347,7 +361,7 @@ def main(argv=None):
             print(json.dumps(credential_check(), ensure_ascii=False, indent=2))
             return 0
         if args.command == "configure":
-            print(json.dumps(configure_credentials(args.stdin_json), ensure_ascii=False, indent=2))
+            print(json.dumps(configure_credentials(args.stdin_json, args.user_only), ensure_ascii=False, indent=2))
             return 0
         if args.command == "forget":
             credential_store.forget_credentials()

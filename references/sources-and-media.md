@@ -4,7 +4,7 @@
 
 查当前官方 [API 文档](https://www.screenscraper.fr/webapi2.php)，不要复制网站整页或其他客户端开发者密钥。`jeuInfos.php` 的查询可结合平台 ID、ROM 名称、大小和 CRC/MD5/SHA1；哈希和平台/版本一起判定，名称相似不能直接确认。用户凭据 `ssid / sspassword` 与开发者凭据 `devid / devpassword / softname` 分开。
 
-先运行 `scripts/screenscraper.py check`，它只检查本机已保存凭据和环境变量，不发送网络请求。已配置时直接复用，不再次索要；`ready` 仅表示字段齐备，服务端权限与配额仍以实际响应为准。未配置或不完整时，告知缺少哪些字段，并提示用户选择“配置并保存在本机”或“暂不提供，继续其他来源”。同一任务只提示一次；等待答复期间继续不依赖此来源的扫描与整理，不发送缺凭据的 API 请求。
+先运行 `scripts/screenscraper.py check`，它只检查本机已保存凭据和环境变量，不发送网络请求。用户账号与应用开发者授权分别检查：`configured` 可表示账号已保存，`ready_for_api` 仍需完整开发者配对，并不证明服务端权限与配额。已保存的配对直接复用，不再次索要；需要用户账号时，优先引导注册和 `configure --user-only` 本机隐藏输入。只缺应用授权时清楚提示下一步，不让用户重复注册或提供账号。允许先跳过，同一任务只提示一次；等待答复期间继续不依赖此来源的扫描与整理，不发送缺凭据的 API 请求。
 
 ### 首次提示与申请入口
 
@@ -16,7 +16,7 @@
 
 ### 配置与自动复用
 
-用户提供凭据后，通过 `scripts/screenscraper.py configure` 保存。交互模式在用户本机终端无回显输入；自动化模式 `configure --stdin` 从标准输入接收 JSON，字段名见下文。不把密码放入命令行、聊天提问、临时明文文件或 Web 工作台；工作台继续作为只读监视器。保存失败时明确失败原因，不宣称已保存。配置不检查服务端有效性；后续查询的拒绝、限流和配额用脱敏信息单独报告。
+用户提供账号后，通过 `scripts/screenscraper.py configure --user-only` 保存账号和密码，交互模式只做两次无回显输入。完整应用凭据用 `configure`；自动化模式 `configure --stdin` 从标准输入接收 JSON，也可仅包含完整的用户账号配对，字段名见下文。更新某一完整配对时保留另一个已保存配对；只保存账号不会启用缺少应用授权的 API。不把密码放入命令行、聊天提问、临时明文文件或 Web 工作台；工作台继续作为只读监视器。保存失败时明确失败原因，不宣称已保存。配置不检查服务端有效性；后续查询的拒绝、限流和配额用脱敏信息单独报告。
 
 保存位置在可分发 skill 和任务目录之外：Windows 为 `%LOCALAPPDATA%/es-de-resource-workbench/credentials/screenscraper.json`，使用当前 Windows 用户的 DPAPI 加密与目录权限；其他系统为 `$XDG_CONFIG_HOME/es-de-resource-workbench/credentials/screenscraper.json`，未设置时用 `~/.config/...`，以目录 `0700`、文件 `0600` 限制当前用户访问，不宣称这种文件权限等同于系统加密。更新使用同一 `configure`，清除使用 `forget`。清除本机文件后，若仍设置环境变量，临时配置依然会生效。`check` 只输出配置状态与保护方式，不输出秘密值。
 
