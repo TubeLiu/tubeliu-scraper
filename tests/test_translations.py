@@ -207,6 +207,26 @@ class TranslationDeploymentTests(unittest.TestCase):
         self.assertEqual(self.command('apply', '--run', str(self.run)), 2)
         self.assertEqual(self.target_xml.read_bytes(), self.original)
 
+    def assert_review_revocation_during_staging_blocks_write(self, replace_key):
+        self.assertEqual(self.plan(), 0)
+        original_put = deployment.deploy.LocalTarget.put
+
+        def revoke_then_put(target, *args, **kwargs):
+            self.review_key.unlink()
+            if replace_key:
+                i._key(self.review_key, create=True)
+            return original_put(target, *args, **kwargs)
+
+        with patch.object(deployment.deploy.LocalTarget, 'put', revoke_then_put):
+            self.assertEqual(self.command('apply', '--run', str(self.run)), 2)
+        self.assertEqual(self.target_xml.read_bytes(), self.original)
+
+    def test_review_key_removed_during_staging_blocks_commit(self):
+        self.assert_review_revocation_during_staging_blocks_write(False)
+
+    def test_review_key_replaced_during_staging_blocks_commit(self):
+        self.assert_review_revocation_during_staging_blocks_write(True)
+
     def test_wrong_target_root_rejects_even_identical_rom(self):
         other = self.root / 'other-roms'; (other / 'nds').mkdir(parents=True)
         (other / 'nds' / 'Mario.nds').write_bytes(self.rom.read_bytes())
