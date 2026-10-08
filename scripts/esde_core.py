@@ -266,7 +266,7 @@ def identity_catalog_entries(catalog):
 
 
 def normalize_document(document, system_root, actual, patches=None, *, system=None,
-                       identity_catalog=None, identity_key_path=None, rom_fingerprint_reader=None):
+                       identity_catalog=None, identity_key_path=None, rom_fingerprint_reader=None, translation_target=None):
     document = copy.deepcopy(document)
     root = document.find("gameList")
     grouped, unresolved = group_games(document, system_root, actual)
@@ -313,7 +313,8 @@ def normalize_document(document, system_root, actual, patches=None, *, system=No
             receipt = entry["receipt"]
             signed_media = receipt.get("payload", {}).get("media", []) if isinstance(receipt, dict) else []
             payload = verify_receipt(receipt, system=system, file=file, rom_fingerprint=fingerprint,
-                                     metadata=metadata, media=signed_media, key_path=identity_key_path)
+                                     metadata=metadata, media=signed_media, key_path=identity_key_path,
+                                     target_binding=translation_target or {"kind": "local", "system_rom_root": str(Path(system_root).resolve())})
             report["identity_checks"].append({"system": system, "file": file,
                                                "rom_fingerprint": fingerprint, "approved_metadata": metadata,
                                                "receipt": receipt, "provider_game_id": payload.get("provider_game_id")})

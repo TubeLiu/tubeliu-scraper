@@ -249,7 +249,9 @@ def build_identity_gate(run, plan, target, catalog_path=None, key_path=None):
             raise DeploymentError("Prepared game facts differ from the approved identity receipt: " + ":".join(key))
         fingerprint = rom_fingerprint(plan["target"], target, *key)
         try:
-            verified = identity_api().verify_receipt(entry["receipt"], system=key[0], file=key[1], rom_fingerprint=fingerprint, metadata=approved, media=payload.get("media", []), key_path=key_path)
+            from translations import target_binding
+            verified = identity_api().verify_receipt(entry["receipt"], system=key[0], file=key[1], rom_fingerprint=fingerprint, metadata=approved, media=payload.get("media", []), key_path=key_path,
+                                                        target_binding=target_binding(plan["target"], key[0]) if payload.get("translation_review") is not None else None)
         except (ValueError, OSError) as error:
             raise DeploymentError("Identity verification blocked " + ":".join(key) + ": " + str(error)) from error
         games.append({"system": key[0], "file": key[1], "rom_fingerprint": fingerprint, "metadata": change["metadata"], "receipt_sha256": sha256(json.dumps(entry["receipt"], sort_keys=True, ensure_ascii=False).encode("utf-8"))})
@@ -291,10 +293,33 @@ def install_identity_commit_guard(plan, target):
                     if matches != [binding["file"]]:
                         raise DeploymentError("ROM inventory now has an ambiguous or missing media stem; no media will be committed")
                     selected.add((system, binding["file"]))
-        for game in plan["identity_gate"]["games"]:
+        # Staging can take minutes (especially Android tar batches). Recheck
+        # frozen approvals and current reviewer trust at the same boundary as
+        # ROM bytes, rather than relying on the earlier apply preflight.
+        entries = {}
+        gate = plan["identity_gate"]
+        if selected:
+            catalog_data = Path(gate["catalog"]).read_bytes()
+            if sha256(catalog_data) != gate["catalog_sha256"]:
+                raise DeploymentError("Frozen identity catalog changed immediately before a game write")
+            entries = catalog_entries(json.loads(catalog_data))
+        for game in gate["games"]:
             key = (game["system"], game["file"])
-            if key in selected and rom_fingerprint(plan["target"], target, *key) != game["rom_fingerprint"]:
+            if key not in selected:
+                continue
+            fingerprint = rom_fingerprint(plan["target"], target, *key)
+            if fingerprint != game["rom_fingerprint"]:
                 raise DeploymentError("ROM changed immediately before a game write; no further targets will be installed")
+            receipt = entries[key]["receipt"]
+            payload = receipt["payload"]
+            try:
+                from translations import target_binding
+                identity_api().verify_receipt(
+                    receipt, system=key[0], file=key[1], rom_fingerprint=fingerprint,
+                    metadata=payload["metadata"], media=payload.get("media", []), key_path=gate.get("key_path"),
+                    target_binding=target_binding(plan["target"], key[0]) if payload.get("translation_review") is not None else None)
+            except (ValueError, OSError) as error:
+                raise DeploymentError("Identity approval changed immediately before a game write: " + str(error)) from error
     target.identity_before_commit = check
 
 

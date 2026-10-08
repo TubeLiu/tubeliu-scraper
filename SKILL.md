@@ -25,7 +25,7 @@ description: 刮削、中文化和修复 ES-DE 游戏资料与媒体。触发词
 
 ## 匹配游戏与补齐资源
 
-按实际文件建立任务，区分地区、版本、改版、多碟和重复文件。新资料与媒体必须通过 [references/identity.md](references/identity.md) 的机器检查：实际 ROM 字节、平台、服务返回的唯一 ROM 记录与具体写入内容一致，再生成身份目录供准备和部署复核。文件名相似、手写来源 JSON、`identity_confirmed=true` 或目视说明不能替代凭证。无法核实的条目保持原值并标记待确认，不能猜填或手工签造报告。
+按实际文件建立任务，区分地区、版本、改版、多碟和重复文件。新资料与媒体必须通过 [references/identity.md](references/identity.md) 的机器检查：实际 ROM 字节、平台、服务返回的唯一 ROM 记录与具体写入内容一致，再生成身份目录供准备和部署复核。中文名称/简介翻译必须按身份规则另由独立审核者审核原文与译文，并使用独立审核凭证；生成器不能自行批准，未知事实不补造。文件名相似、手写来源 JSON、`identity_confirmed=true` 或目视说明不能替代凭证。无法核实的条目保持原值并标记待确认，不能猜填或手工签造报告。
 
 原生媒体为 `covers / screenshots / titlescreens / marquees / miximages / videos`，按实际 ROM 的相对目录与文件 stem 映射，遵循现有 ES-DE 配置。素材必须来自该游戏候选返回的对应类型 URL，下载字节与凭证一致；占位图、生成图及错配素材不能算完成。用 `scripts/media.py` 检查解码和视频规格，另做内容目视确认。
 

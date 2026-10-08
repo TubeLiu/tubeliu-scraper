@@ -358,6 +358,19 @@ def _metadata(candidate, proposed):
     return result
 
 
+def _approved_metadata(candidate, metadata, review, source, system, file, fingerprint, matched, key_path, target=None):
+    if review is None:
+        return _metadata(candidate, metadata)
+    from translations import reviewed_metadata
+    translations = reviewed_metadata(review, candidate, source=source, system=system, file=file,
+                                    fingerprint=fingerprint, matched=matched, key_path=key_path, target=target)
+    metadata = _object(metadata, "Approved metadata")
+    if any(metadata.get(field) != text for field, text in translations.items()):
+        _fail("Metadata differs from independently reviewed translation", "metadata_mismatch")
+    facts = _metadata(candidate, {field: value for field, value in metadata.items() if field not in translations})
+    return {**facts, **translations}
+
+
 def _candidate_urls(candidate, kind):
     values = candidate.get("media_candidates", [])
     if not isinstance(values, list):
@@ -409,7 +422,7 @@ def _media(items, system, file, **kwargs):
     return sorted(result, key=lambda item: (item["type"], item["relative"]))
 
 
-def authorize_patch(source_envelope, *, system, file, metadata, media=None, rom_path=None, rom_fingerprint=None, key_path=None):
+def authorize_patch(source_envelope, *, system, file, metadata, media=None, rom_path=None, rom_fingerprint=None, key_path=None, translation_review=None):
     """Bind exact fetched facts/media to a freshly measured, concrete ROM.
 
     ``rom_fingerprint`` is an internal alternative for a trusted ADB measurement
@@ -422,7 +435,8 @@ def authorize_patch(source_envelope, *, system, file, metadata, media=None, rom_
     if rom_path is not None and rom_fingerprint is not None and _fingerprint(rom_fingerprint, complete=True) != measured:
         _fail("Supplied fingerprint differs from actual ROM bytes", "rom_mismatch")
     _, candidate, matched = _matched_candidate(source_envelope, system, measured, key_path)
-    approved = _metadata(candidate, metadata)
+    approved = _approved_metadata(candidate, metadata, translation_review, source_envelope,
+                                  system, file, measured, matched, key_path)
     approved_media = _media(media or [], system, file, candidate=candidate, key_path=key_path, require_download=True)
     if not approved and not approved_media:
         _fail("There is no concrete metadata/media payload to approve", "empty_approval")
@@ -431,10 +445,11 @@ def authorize_patch(source_envelope, *, system, file, metadata, media=None, rom_
         "provider": "screenscraper", "provider_game_id": str(candidate["provider_game_id"]),
         "method": "exact_returned_rom_hash_platform_size", "source": source_envelope,
         "matched_rom": matched, "metadata": approved, "media": approved_media,
+        **({"translation_review": translation_review} if translation_review is not None else {}),
     }, "game_identity", key_path)
 
 
-def verify_receipt(receipt, *, system, file, rom_fingerprint, metadata, media=None, key_path=None):
+def verify_receipt(receipt, *, system, file, rom_fingerprint, metadata, media=None, key_path=None, target_binding=None):
     """Recheck seal, observed source, live ROM identity and exact approved writes."""
     system, file = _system(system), _relative(file)
     payload = verify_payload(receipt, "game_identity", key_path)
@@ -447,7 +462,8 @@ def verify_receipt(receipt, *, system, file, rom_fingerprint, metadata, media=No
     _, candidate, matched = _matched_candidate(payload.get("source"), system, frozen, key_path)
     if payload.get("provider_game_id") != str(candidate["provider_game_id"]) or payload.get("provider") != "screenscraper" or payload.get("method") != "exact_returned_rom_hash_platform_size" or payload.get("matched_rom") != matched:
         _fail("Identity receipt no longer corresponds to its observed source", "invalid_identity_seal")
-    approved = _metadata(candidate, payload.get("metadata"))
+    approved = _approved_metadata(candidate, payload.get("metadata"), payload.get("translation_review"),
+                                  payload.get("source"), system, file, frozen, matched, key_path, target_binding)
     if approved != metadata:
         _fail("Metadata write differs from the exact approved payload", "metadata_mismatch")
     signed_media = _media(payload.get("media"), system, file, candidate=candidate)
@@ -543,6 +559,7 @@ def main(argv=None):
     authorize.add_argument("--file", required=True, help="Complete relative ROM path under its platform directory")
     authorize.add_argument("--rom", required=True, help="Actual local regular ROM file to measure, never a name/hash JSON")
     authorize.add_argument("--patch", required=True, help="One exact {file,metadata} patch, or a one-game games list")
+    authorize.add_argument("--translation-review", help="Independent translation review envelope; never provider evidence")
     authorize.add_argument("--media", help="Selected media list with actual files and signed provider download receipts")
     authorize.add_argument("--identity-key", help="Trusted private key path; never accepted from provider/patch/catalog JSON")
     authorize.add_argument("--out", required=True, help="New identity catalog output; existing files are not replaced")
@@ -554,7 +571,8 @@ def main(argv=None):
         metadata = load_exact_patch(args.patch, args.file)
         media = load_exact_media(args.media)
         receipt = authorize_patch(source, system=args.system, file=args.file, rom_path=args.rom,
-                                  metadata=metadata, media=media, key_path=args.identity_key)
+                                  metadata=metadata, media=media, key_path=args.identity_key,
+                                  translation_review=_load_json(args.translation_review) if args.translation_review else None)
         catalog = build_catalog([receipt], key_path=args.identity_key)
         write_catalog(args.out, catalog)
         print(json.dumps({"status": "approved", "system": args.system, "file": args.file,
