@@ -45,3 +45,8 @@ PY SKILL/scripts/media.py check --root RUN/prepared/media --receipt RUN/media_qa
 参数位置以子命令 `--help` 为准。`--identity-confirmed --identity-note "实际审查依据"` 只记录目视说明，不能替代机器身份凭证或授权部署。新视频阈值可用 `--max-duration`、`--max-bytes`、`--max-height` 调整；当前脚本编码固定 H.264。转码与组合图目前缺少派生凭证时仅交付候选预览，不能把原始素材凭证套在变化后的字节上。批量 QA 用明确清单包含 path、kind、media_type 与身份依据。
 
 视觉 QA 凭证需列出检查对象、素材身份、代表性截图/播放结果、预览标记和检查时间。图片预览视频必须保存 `screenshot_preview` 或 `original_title_art_preview`，不能因为转成 mp4 就标记 gameplay。
+
+
+## 中文翻译衍生内容
+
+真实 API 返回的原文保留在封存候选 `original_name/original_description` 中。AI 翻译不是来源事实，只能按 [identity.md](identity.md#中文译文的独立审核) 的独立审核流程写入中文名称/简介。AI 补充未知事实仍只可预览；转码、组合图和其他派生媒体没有因此取得部署授权。真实来源凭证仍须 ScreenScraper 开发者授权，离线合成测试不能替代。

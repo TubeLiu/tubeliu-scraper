@@ -658,7 +658,8 @@ def normalize(args, prepare=False):
                 return fingerprint
         output, report = normalize_document(document, root, actual, patch, system=args.system,
                                              identity_catalog=catalog, identity_key_path=getattr(args, "identity_key", None),
-                                             rom_fingerprint_reader=fingerprint_reader)
+                                             rom_fingerprint_reader=fingerprint_reader,
+                                             translation_target={k: v for k, v in binding.items() if k in {"kind", "serial", "remote_rom_root", "system_rom_root"}})
         after = preserved_snapshot(output, root, actual)
         for file, fields in before.items():
             if after[file] != fields:
@@ -753,7 +754,8 @@ def authorize_android(args):
             source = source["identity_source"]
         media = load_exact_media(args.media)
         receipt = authorize_patch(source, system=args.system, file=args.file, rom_fingerprint=fingerprint,
-                                  metadata=metadata, media=media, key_path=args.identity_key)
+                                  metadata=metadata, media=media, key_path=args.identity_key,
+                                  translation_review=load_json(args.translation_review) if args.translation_review else None)
         catalog = build_catalog([receipt], key_path=args.identity_key)
         write_catalog(args.out, catalog)
         reporter.update("running", "Exact fetched facts approved for measured Android ROM: " + args.system + ":" + args.file,
@@ -802,6 +804,7 @@ def build_parser():
     authorize.add_argument("--patch", required=True, help="One exact factual metadata patch for this ROM")
     authorize.add_argument("--media", help="Exact approved media list including signed provider-download receipts")
     authorize.add_argument("--identity-key")
+    authorize.add_argument("--translation-review", help="Separately reviewed translation derivative; reviewer key comes from trusted environment")
     authorize.add_argument("--out", required=True, help="Separate identity catalog output")
     authorize.add_argument("--run-dir")
     for name in ("audit", "verify-local"):

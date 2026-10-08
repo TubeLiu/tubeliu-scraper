@@ -249,7 +249,9 @@ def build_identity_gate(run, plan, target, catalog_path=None, key_path=None):
             raise DeploymentError("Prepared game facts differ from the approved identity receipt: " + ":".join(key))
         fingerprint = rom_fingerprint(plan["target"], target, *key)
         try:
-            verified = identity_api().verify_receipt(entry["receipt"], system=key[0], file=key[1], rom_fingerprint=fingerprint, metadata=approved, media=payload.get("media", []), key_path=key_path)
+            from translations import target_binding
+            verified = identity_api().verify_receipt(entry["receipt"], system=key[0], file=key[1], rom_fingerprint=fingerprint, metadata=approved, media=payload.get("media", []), key_path=key_path,
+                                                        target_binding=target_binding(plan["target"], key[0]) if payload.get("translation_review") is not None else None)
         except (ValueError, OSError) as error:
             raise DeploymentError("Identity verification blocked " + ":".join(key) + ": " + str(error)) from error
         games.append({"system": key[0], "file": key[1], "rom_fingerprint": fingerprint, "metadata": change["metadata"], "receipt_sha256": sha256(json.dumps(entry["receipt"], sort_keys=True, ensure_ascii=False).encode("utf-8"))})
